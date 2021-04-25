@@ -1,4 +1,5 @@
-from handle_wiki.extraction import *
+from corpus.preprocessing import DataBuilder
+from handle_wiki.extraction import executeJob
 from utils import queriesObject2Category
 from utils.argparser import args
 
@@ -11,11 +12,9 @@ if __name__ == "__main__":
         # hence, we can only parallelize the whole group
 
         pool = Pool()
-
-        outs = pool.map(executeJob, queriesObject2Category.items())
-        # 48 s
-
+        extractedRows = pool.map(executeJob, queriesObject2Category.items())
         pool.close()
     else:
-        outs = list(map(executeJob, queriesObject2Category.items()))
-        # 140 s
+        extractedRows = list(map(executeJob, queriesObject2Category.items()))
+    
+    df = DataBuilder(extractedRows).getNormalizedDataFrame()

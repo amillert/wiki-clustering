@@ -1,10 +1,8 @@
-from utils import wiki_endpoint, baseQuery
+from utils import wiki_endpoint, baseQuery, DataRow
 from utils.argparser import args
 
 import nltk
-import sys
 import threading
-import wikipedia
 import wptools
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -18,7 +16,7 @@ def getItemsRefs(o: str) -> list:
     return [x["item"]["value"] for x in queryResults]
 
 
-def extractDataPerOccupation(refs: list, category: str) -> list:
+def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
     results = []
     personCounter = 0
 
@@ -40,11 +38,12 @@ def extractDataPerOccupation(refs: list, category: str) -> list:
             print(title, len(sentences))
 
             if len(sentences) > args.sentences_per_article:
-                results.append((
+                results.append(DataRow(
                     title,
-                    description,
-                    " ".join(sentences[:n]),
-                    category
+                    nltk.sent_tokenize(description),
+                    sentences[:args.sentences_per_article],
+                    category,
+                    group
                     ))
                 personCounter += 1
 
@@ -58,14 +57,14 @@ def executeJob(occupationCategory: tuple) -> list:
     # TODO(amillert): optional splitIntoBatches
     # for now not so important cause I have 12 cores
 
-    occupationObject, category = occupationCategory
+    occupationObject, (category, group) = occupationCategory
 
     occupationRefs = getItemsRefs(occupationObject)
-    rawDataPoints = extractDataPerOccupation(occupationRefs, category)
+    rawDataPoints = extractDataPerOccupation(occupationRefs, category, group)
 
     return rawDataPoints
 
 def splitIntoBatches(queriesObjects):
-    import os
+    # import os
     # cpus = os.cpu_count()
     pass

@@ -1,3 +1,6 @@
+from collections import namedtuple
+
+
 wiki_endpoint = "https://query.wikidata.org/bigdata/namespace/wdq/sparql"
 
 baseQuery = "SELECT ?item WHERE {{ ?item wdt:P31 wd:Q5; wdt:P106 wd:{}. }}"
@@ -17,3 +20,6 @@ queriesObject2Category = {
     queryOccupationObjectPoliticians:    ("politicians", "Z"),
     queryOccupationObjectMathematicians: ("mathematicians", "Z")
 }
+
+DataRow = namedtuple("DataRow",
+                     ["title", "description", "content", "category", "group"])

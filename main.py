@@ -4,6 +4,7 @@ from utils import queriesObject2Category
 from utils.argparser import args
 
 from multiprocessing import Pool
+import os
 
 
 if __name__ == "__main__":
@@ -16,5 +17,23 @@ if __name__ == "__main__":
         pool.close()
     else:
         extractedRows = list(map(executeJob, queriesObject2Category.items()))
-    
-    df = DataBuilder(extractedRows).getNormalizedDataFrame()
+
+    db = DataBuilder(extractedRows, args)
+    df = db.get_df()
+
+    # columns = "\t".join(df.columns.tolist())
+    # data = df.values
+
+    db.save()
+    db.load()
+
+    # _ = DataBuilder.pickle(df, corpus_path)
+    # new_df = DataBuilder.unpickle(df, os.path.join(pardir, f"corpus_{len(os.listdir(pardir)) - 1}.tsv"))
+    # print()
+
+    # fin.write(f"{columns}\n")
+    # for row in data:
+    #     line = '\t'.join(map(str, row))
+    #     fout.write(f"{line}\n")
+
+    print()

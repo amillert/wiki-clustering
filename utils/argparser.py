@@ -31,5 +31,12 @@ argument_parser.add_argument(
     action="store_true",
     help="If flag set - run parsing (maybe other part as well) in parallel",
 )
+argument_parser.add_argument(
+    "-c",
+    "--path_corpus_out",
+    action="store",
+    help="If provided, it will serve as a path to save raw extracted corpus to; " + \
+         "otherwise program will continue without this step",
+)
 
 args = argument_parser.parse_args()

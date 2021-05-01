@@ -1,4 +1,5 @@
 from utils import DataRow
+from corpus.persistance import Persistable
 
 import nltk
 import pandas as pd
@@ -30,10 +31,14 @@ class TextNormalizer:
         return self._normalized
 
 
-class DataBuilder:
-    def __init__(self, data: list):
+class DataBuilder(Persistable):
+    def __init__(self, data: list, args: list):
+        super(DataBuilder, self).__init__(args.path_corpus_out)
         self._data = data
         self._columns = data[0][0]._fields
+        self._df = self._getNormalizedDataFrame()
+        self._columns_str = "\t".join(self._df.columns)
+        self._schema = self._generate_schema(self._df)
 
     @staticmethod
     def _normalizeRow(row: DataRow) -> tuple:
@@ -50,7 +55,16 @@ class DataBuilder:
     def _flattenRows(self) -> list:
         return [xi for x in self._data for xi in x]
 
-    def getNormalizedDataFrame(self) -> pd.DataFrame:
+    def _getNormalizedDataFrame(self) -> pd.DataFrame:
         rows = list(map(self._normalizeRow, self._flattenRows()))
 
         return pd.DataFrame(rows, columns=self._columns)
+
+    def get_df(self):
+        return self._df
+    
+    def save(self) -> None:
+        self._cache(self._schema, self._columns_str, self._df.values)
+
+    def load(self):
+        return self._load_cache()

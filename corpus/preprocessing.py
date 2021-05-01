@@ -32,13 +32,16 @@ class TextNormalizer:
 
 
 class DataBuilder(Persistable):
-    def __init__(self, data: list, args: list):
-        super(DataBuilder, self).__init__(args.path_corpus_out)
+    def __init__(self, data: list, args):
+        super(DataBuilder, self).__init__(args.path_corpus_out if args.path_corpus_out else None)
+
         self._data = data
         self._columns = data[0][0]._fields
         self._df = self._getNormalizedDataFrame()
         self._columns_str = "\t".join(self._df.columns)
-        self._schema = self._generate_schema(self._df)
+
+        if args.path_corpus_out:
+            self._schema = self._generate_schema(self._df)
 
     @staticmethod
     def _normalizeRow(row: DataRow) -> tuple:

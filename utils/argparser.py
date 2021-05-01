@@ -35,8 +35,14 @@ argument_parser.add_argument(
     "-c",
     "--path_corpus_out",
     action="store",
-    help="If provided, it will serve as a path to save raw extracted corpus to; " + \
-         "otherwise program will continue without this step",
+    help="Path to save raw extracted corpus to or load (if composed with --load_data)",
+    required=True,
+)
+argument_parser.add_argument(
+    "-l",
+    "--load_data",
+    action="store_true",
+    help="If flag set - use --path_corpus_out to load most recent (if dir provided) or exact (if file provided",
 )
 
 args = argument_parser.parse_args()

@@ -8,32 +8,26 @@ import os
 
 
 if __name__ == "__main__":
-    if args.parallel:
-        # Unfortunatelly we want a limited amount of persons per occupation;
-        # hence, we can only parallelize the whole group
+    try:
+        if not args.load_data:
+            if args.parallel:
+                pool = Pool()
+                extractedRows = pool.map(executeJob, queriesObject2Category.items())
+                pool.close()
+            else:
+                extractedRows = list(map(executeJob, queriesObject2Category.items()))
 
-        pool = Pool()
-        extractedRows = pool.map(executeJob, queriesObject2Category.items())
-        pool.close()
-    else:
-        extractedRows = list(map(executeJob, queriesObject2Category.items()))
+            db = DataBuilder(extractedRows, args)
+            df = db.get_df()
 
-    db = DataBuilder(extractedRows, args)
-    df = db.get_df()
-
-    # columns = "\t".join(df.columns.tolist())
-    # data = df.values
-
-    db.save()
-    db.load()
-
-    # _ = DataBuilder.pickle(df, corpus_path)
-    # new_df = DataBuilder.unpickle(df, os.path.join(pardir, f"corpus_{len(os.listdir(pardir)) - 1}.tsv"))
-    # print()
-
-    # fin.write(f"{columns}\n")
-    # for row in data:
-    #     line = '\t'.join(map(str, row))
-    #     fout.write(f"{line}\n")
-
-    print()
+            if args.path_corpus_out:
+                db.save()
+        elif args.load_data and args.path_corpus_out:
+            df = db.load()
+        else:
+            raise AttributeError("Probably missing --parh_corpus_out flag")
+    except AttributeError:
+        exit(1)
+    except:
+        print("Wiki error")
+        exit(2)

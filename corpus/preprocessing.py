@@ -1,9 +1,10 @@
 from utils import DataRow
 from corpus.persistance import Persistable
 
+from functools import reduce
 import nltk
-import pandas as pd
 from nltk.tag import StanfordNERTagger
+import pandas as pd
 
 
 class TextNormalizer:
@@ -28,7 +29,7 @@ class TextNormalizer:
         # return self._removeStopWords(text)
         return [xi for x in self._removeStopWords(text) for xi in x]
 
-    def getNormalized(self):
+    def getNormalized(self) -> list:
         return self._normalized
 
 
@@ -37,60 +38,55 @@ class FeaturesGenerator:
     Get NERs, POSs, etc.
     """
 
-    def __init__(self, df: pd.DataFrame, schema=dict):
+    def __init__(self, df: pd.DataFrame, schema: dict):
         self._df = df
         self._schema = schema
-
-        # pipeline:
-        # pipeline = [self._is_alpha, nltk.pos_tag]
-
-        # https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
-        self.tag_rules = {
-            "VERB": (
-                "V",
-                "v"
-            ),
-            "NOUN": (
-                "N",
-                "n"
-            ),
-            "ADVERB": (
-                "RB",
-                "r"
-            ),
-            "ADJECTIVE": (
-                "J",
-                "a"
-            ),
-        }
-
         self._lemmatizer = nltk.stem.wordnet.WordNetLemmatizer()
+        self._list_features = [k for k, v in self._schema.items() if v == "list"]
+
+        # implemented by self._generate_dictionaries
+        # which is triggered with self.mutate
+        self._vocabulary = None
+        self._token2idx = None
+        self._idx2token = None
+
+
+    def get_df(self) -> pd.DataFrame:
+        return self._df
+
+    def mutate(self):
+        """
+        https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+        """
+
+        tag_rules = {
+                 "VERB": ("V",  "v"),
+                 "NOUN": ("N",  "n"),
+               "ADVERB": ("RB", "r"),
+            "ADJECTIVE": ("J",  "a"),
+        }
 
         self._preserve_alphas()
         self._pos_annotate("POS")
-        self._filter_pos_and_lemmatize("POS")
-        print()
+        self._filter_pos_and_lemmatize("POS", tag_rules)
+        self._generate_dictionaries()
 
     def _preserve_alphas(self) -> None:
-        list_features = [k for k, v in self._schema.items() if v == "list"]
-        for feature in list_features:
+        for feature in self._list_features:
             self._df[feature] = self._df[feature].apply(self._is_alpha)
 
-    @ staticmethod
+    @staticmethod
     def _is_alpha(l: list) -> list:
         return list(filter(lambda x: x.isalpha(), l))
 
-
     def _pos_annotate(self, suffix: str) -> None:
-        list_features = [k for k, v in self._schema.items() if v == "list"]
-        for feature in list_features:
+        for feature in self._list_features:
             self._df[f"{feature}_{suffix}"] = self._df[feature].apply(
                 nltk.pos_tag)
 
-    def _filter_pos_and_lemmatize(self, suffix: str) -> None:
-        list_features = [k for k, v in self._schema.items() if v == "list"]
-        for feature in list_features:
-            for pos, (rule, lemma) in self.tag_rules.items():
+    def _filter_pos_and_lemmatize(self, suffix: str, tag_rules: list) -> None:
+        for feature in self._list_features:
+            for pos, (rule, lemma) in tag_rules.items():
                 col_in, col_out = f"{feature}_{suffix}", f"{feature}_{pos}"
                 self._df[col_out] = self._df[col_in].apply(
                     lambda l: self._lemmatize_from_pos(l, lemma, rule)
@@ -104,11 +100,24 @@ class FeaturesGenerator:
             )
         )
 
+    def _generate_dictionaries(self) -> None:
+        vocabs = (
+            {xi for x in self._df[listCol].values.tolist() for xi in x}
+            for listCol in self._list_features
+        )
+
+        self._vocabulary = reduce(lambda x, y: x | y, vocabs)
+        self._token2idx = {token: i for i, token in enumerate(self._vocabulary)}
+        self._idx2token = {v: k for k, v in self._token2idx.items()}
 
 
 class DataBuilder(Persistable):
     def __init__(self, data: list, args):
         super(DataBuilder, self).__init__(args.path_corpus_out, args.load_data)
+
+        # implemented if args.load_data flag set or when loading data with self.load
+        self._df = None
+        self._schema = None
 
         if not args.load_data:
             self._data = data
@@ -116,11 +125,10 @@ class DataBuilder(Persistable):
             self._df = self._getNormalizedDataFrame()
             self._columns_str = "\t".join(self._df.columns)
 
-            # if args.path_corpus_out:  # required parameter
             self._schema = self._generate_schema(self._df)
 
-    @ staticmethod
-    def _normalizeRow(row: DataRow) -> tuple:
+    @staticmethod
+    def _normalizeRow(row: DataRow) -> (str, list, list, str, str):
         title, description, content, category, group = row
 
         return (
@@ -139,17 +147,17 @@ class DataBuilder(Persistable):
 
         return pd.DataFrame(rows, columns=self._columns)
 
-    def get_schema(self):
+    def get_schema(self) -> dict:
         return self._schema
 
-    def get_df(self):
+    def get_df(self) -> (pd.DataFrame, dict):
         return self._df, self._schema
 
     def save(self) -> None:
         self._cache(self._schema, self._columns_str, self._df.values)
 
     def load(self) -> pd.DataFrame:
-        # maybe we don't need to set them as self...?
         self._df = self._load_cache()
         self._schema = self._generate_schema(self._df)
+
         return self._df, self._schema

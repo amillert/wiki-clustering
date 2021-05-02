@@ -13,10 +13,11 @@ class Persistable:
     def __init__(self, path_corpus_out: str, toLoad: bool):
         self.pardir = path_corpus_out.strip()
         self.toLoad = toLoad
+
         if os.path.isdir(self.pardir):
             os.makedirs(self.pardir, exist_ok=True)
-            self._suffix = self._get_suffix(self.pardir)
 
+            self._suffix = self._get_suffix(self.pardir)
             self._corpus_path = os.path.join(self.pardir, f"corpus_{self._suffix}.tsv")
         else:
             # TODO(albert) test if works
@@ -33,7 +34,7 @@ class Persistable:
         } #)
         # }, indent=2)
 
-    def _get_suffix(self, path: str):
+    def _get_suffix(self, path: str) -> int:
         return len(list(filter(lambda l: "corpus" in l, os.listdir(path)))) - int(self.toLoad)
 
     def _cache(self, schema: dict, columns: str, data: np.array) -> None:

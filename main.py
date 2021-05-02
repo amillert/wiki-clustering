@@ -1,4 +1,5 @@
 from corpus.preprocessing import DataBuilder
+from corpus.preprocessing import FeaturesGenerator
 from handle_wiki.extraction import executeJob
 from utils import queriesObject2Category
 from utils.argparser import args
@@ -18,16 +19,21 @@ if __name__ == "__main__":
                 extractedRows = list(map(executeJob, queriesObject2Category.items()))
 
             db = DataBuilder(extractedRows, args)
-            df = db.get_df()
+            # schema = db.get_schema()
+            df, schema = db.get_df()
 
             if args.path_corpus_out:
                 db.save()
         elif args.load_data and args.path_corpus_out:
-            df = db.load()
-        else:
-            raise AttributeError("Probably missing --parh_corpus_out flag")
+            db = DataBuilder(None, args)
+            df, schema = db.load()
+        # else:
+        #     raise AttributeError("Probably missing --path_corpus_out flag")
     except AttributeError:
         exit(1)
-    except:
-        print("Wiki error")
-        exit(2)
+    # except:
+    #     print("Wiki error")
+    #     exit(2)
+
+    fg = FeaturesGenerator(df, schema)
+    

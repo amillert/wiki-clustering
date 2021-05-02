@@ -23,15 +23,16 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
     for ref in refs:
         if personCounter >= args.num_entires: break
         
-        page = wptools.page(wikibase=ref.split("/")[-1])
-        page.get_wikidata()
-        
-        description = page.data["description"]
-        title = page.data["title"]
         try:
+            page = wptools.page(wikibase=ref.split("/")[-1])
+            page.get_wikidata()
+            
+            description = page.data["description"]
+            title = page.data["title"]
+
             content = page.get_query().data["extext"].replace("\n", " ")
         except:
-            # print(f"Can't obtain content for entry: {title}")
+            print(f"Can't obtain content for entry: {title}")
             pass
         else:
             sentences = nltk.sent_tokenize(content)
@@ -39,16 +40,16 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
 
             if len(sentences) > args.sentences_per_article:
                 results.append(DataRow(
-                    title,
-                    nltk.sent_tokenize(description),
-                    sentences[:args.sentences_per_article],
-                    category,
-                    group
+                    title = title,
+                    description = nltk.sent_tokenize(description),
+                    content = sentences[:args.sentences_per_article],
+                    category = category,
+                    group = group
                     ))
                 personCounter += 1
 
                 print(end="\n\n\n")
-                print(threading.get_native_id(), personCounter, end="\n\n\n")
+                print(category, personCounter, end="\n\n\n")
 
     return results
 

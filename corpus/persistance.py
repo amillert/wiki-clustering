@@ -10,8 +10,9 @@ class Persistable:
     Makes sense only if --path_corpus_out flag provided; otherwise methods should fail
     """
 
-    def __init__(self, path_corpus_out):
+    def __init__(self, path_corpus_out: str, toLoad: bool):
         self.pardir = path_corpus_out.strip()
+        self.toLoad = toLoad
         if os.path.isdir(self.pardir):
             os.makedirs(self.pardir, exist_ok=True)
             self._suffix = self._get_suffix(self.pardir)
@@ -25,17 +26,19 @@ class Persistable:
         self._schema_path = os.path.join(self.pardir, f"schema_{self._suffix}.json")
 
     def _generate_schema(self, df: pd.DataFrame) -> dict:
-        return json.dumps({
+        # return json.dumps({
+        return {
             col: type(df[col][0]).__name__
             for col in df.columns
-        }, indent=2)
+        } #)
+        # }, indent=2)
 
-    def _get_suffix(self, path):
-        return len(list(filter(lambda l: "corpus" in l, os.listdir(path))))
+    def _get_suffix(self, path: str):
+        return len(list(filter(lambda l: "corpus" in l, os.listdir(path)))) - int(self.toLoad)
 
-    def _cache(self, schema: str, columns: str, data: np.array) -> None:
+    def _cache(self, schema: dict, columns: str, data: np.array) -> None:
         with open(self._schema_path, "w") as fout:
-            fout.write(schema)
+            fout.write(json.dumps(schema, indent=2))
 
         with open(self._corpus_path, "w") as fout:
             fout.write(f"{columns}\n")
@@ -44,7 +47,7 @@ class Persistable:
                 fout.write(f"{line}\n")
 
     @staticmethod
-    def _build_dataframe(cols: str, data: list, schema: dict) -> pd.DataFrame:
+    def _build_dataframe(cols: list, data: list, schema: dict) -> pd.DataFrame:
         df = pd.DataFrame(data, columns = cols)
 
         for col_name in df.columns:
@@ -74,15 +77,6 @@ class Persistable:
                     )
                 )
             )
-            # data = list(
-            #     filter(
-            #         lambda l: l[0],
-            #         map(
-            #             lambda l: l.split("\t"),
-            #             fin.read().split("\n")
-            #         )
-            #     )
-            # )
 
         with open(os.path.join(self.pardir, f"schema_{self._suffix}.json"), "r") as fin:
             schema = json.loads(fin.read())

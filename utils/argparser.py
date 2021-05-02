@@ -15,7 +15,6 @@ argument_parser.add_argument(
     action="store",
     type=int,
     help="Provide how many persons per occupation",
-    required=True,
 )
 argument_parser.add_argument(
     "-k",
@@ -23,7 +22,6 @@ argument_parser.add_argument(
     action="store",
     type=int,
     help="Provide how many sentences per article (less will not be saved)",
-    required=True,
 )
 argument_parser.add_argument(
     "-p",

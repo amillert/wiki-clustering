@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 
 argument_parser = argparse.ArgumentParser(
@@ -9,34 +10,45 @@ argument_parser = argparse.ArgumentParser(
 )
 argument_parser.version = "0.1"
 
-argument_parser.add_argument(
+subparsers = argument_parser.add_subparsers()
+
+corpus_subparser = subparsers.add_parser(
+    "corpus",
+    help="Subparser for extracting and preprocessing corpus data."
+)
+prediction_subparser = subparsers.add_parser(
+    "prediction",
+    help="Subparser for visualization."
+)
+
+corpus_subparser.add_argument(
     "-n",
     "--num_entires",
     action="store",
     type=int,
     help="Provide how many persons per occupation",
 )
-argument_parser.add_argument(
+corpus_subparser.add_argument(
     "-k",
     "--sentences_per_article",
     action="store",
     type=int,
     help="Provide how many sentences per article (less will not be saved)",
 )
-argument_parser.add_argument(
+corpus_subparser.add_argument(
     "-p",
     "--parallel",
     action="store_true",
     help="If flag set - run parsing (maybe other part as well) in parallel",
 )
-argument_parser.add_argument(
+corpus_subparser.add_argument(
     "-c",
     "--path_corpus_out",
     action="store",
     help="Path to save raw extracted corpus to or load (if composed with --load_data)",
     required=True,
 )
-argument_parser.add_argument(
+corpus_subparser.add_argument(
     "-l",
     "--load_data",
     action="store_true",
@@ -44,3 +56,4 @@ argument_parser.add_argument(
 )
 
 args = argument_parser.parse_args()
+args.subparser = sys.argv[1]

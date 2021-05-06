@@ -64,7 +64,8 @@ class FeaturesGenerator:
 
     def get_df(self) -> pd.DataFrame:
         self._is_df_numeric = not self._is_df_numeric  # toggle flag
-        return self._converted_df if not self._is_df_numeric else self._df
+
+        return self._converted_df if self._is_df_numeric else self._df
 
     def mutate(self):
         """
@@ -84,14 +85,9 @@ class FeaturesGenerator:
         self._generate_dictionaries()
     
     def toggle_df_representation(self):
-        if self._is_df_numeric:
-            self._is_df_numeric = False
+        if not self._converted_df.empty:
             return self.get_df()
-        elif not self._is_df_numeric and not self._converted_df.empty:
-            # TODO(albert) move to getter; maybe even to self.get_df
-            self._is_df_numeric = True
-            return self._converted_df
-        
+
         self._converted_df["title"] = self._df["title"]
 
         colsToConvertTokens = filter(
@@ -104,7 +100,7 @@ class FeaturesGenerator:
         self._converted_df["category"] = self._df["category"].apply(self._convert_category)
         self._converted_df["group"]    = self._df["group"].apply(self._convert_group)
 
-        assert(self._df.shape == self._converted_df.shape)
+        assert(self._df.shape == self._converted_df.shape, "shapes' missmatch")
         self._is_df_numeric = True
         return self._converted_df
 

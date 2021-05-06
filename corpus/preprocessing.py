@@ -63,12 +63,8 @@ class FeaturesGenerator:
 
 
     def get_df(self) -> pd.DataFrame:
-        if self._is_df_numeric:
-            self._is_df_numeric = not self._is_df_numeric  # toggle flag
-            return self._converted_df
-        else:
-            self._is_df_numeric = not self._is_df_numeric  # toggle flag
-            return self._df
+        self._is_df_numeric = not self._is_df_numeric  # toggle flag
+        return self._converted_df if not self._is_df_numeric else self._df
 
     def mutate(self):
         """

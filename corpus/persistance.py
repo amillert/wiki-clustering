@@ -56,7 +56,6 @@ class Persistable:
             if col_type == "list":
                 # df[col_name].apply(ast.literal_eval)
                 df[col_name] = df[col_name].apply(eval)
-                print("check")
             # df[col_name].apply(eval(col_type))
 
         return df

@@ -1,6 +1,7 @@
 from corpus.preprocessing import DataBuilder
 from corpus.preprocessing import FeaturesGenerator
 from handle_wiki.extraction import executeJob
+from prediction.clustering import cluster
 from utils import queriesObject2Category
 from utils.argparser import args
 
@@ -30,13 +31,19 @@ if __name__ == "__main__":
         except AttributeError:
             exit(1)
         except:
+            # probably move it, so that it doesn't crash
+            # Even though, it's already there too...
             print("Wiki error")
             exit(2)
 
         fg = FeaturesGenerator(df, schema)
         fg.mutate()  # dictionaries ready
-        # fg.toggle_df_representation()  # NL <-> idx
-
+        df_num = fg.toggle_df_representation()  # NL <-> idx
     elif args.subparser == "prediction":
-        pass
+        if args.num_clusters:
+            print(args.num_clusters)
+            args.load_data = True
+            db = DataBuilder(None, args)
+            df, schema = db.load()
+            cluster(args.num_clusters, df)
     

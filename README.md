@@ -25,7 +25,7 @@ $ git clone https://github.com/amillert/wiki-clustering.git
 ```
 Once it's done, all the required files are at your disposal.
 
-The requirements.yml file contains all the information to successfully recreate the `anaconda` virtual environment along with the correct python version and all the compatible version of libraries used in the project. In order to build the virtual environment, make sure `anaconda` is availible in your system by typing:
+The environment.yml file contains all the information to successfully recreate the `anaconda` virtual environment along with the correct python version and all the compatible version of libraries used in the project. In order to build the virtual environment, make sure `anaconda` is availible in your system by typing:
 ```bash
 $ conda --version
 ```
@@ -34,7 +34,7 @@ In case, it's not availible refer to the official manual at https://docs.anacond
 
 If `anaconda` tool is at your disposal, one can proceed and recreate the virtual environment. Simply run the command:
 ```bash
-$ conda env create -f requirements.yml
+$ conda env create -f environment.yml
 ```
 
 The virtual environment's name is `amill_nakaz_2021` and it can be activated by typing:

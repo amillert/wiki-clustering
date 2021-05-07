@@ -52,7 +52,28 @@ corpus_subparser.add_argument(
     "-l",
     "--load_data",
     action="store_true",
-    help="If flag set - use --path_corpus_out to load most recent (if dir provided) or exact (if file provided",
+    help="If flag set - use --path_corpus_out to load most recent (if dir provided) or exact (if file provided)",
+)
+
+prediction_subparser.add_argument(
+    "-n",
+    "--num_clusters",
+    action="store",
+    type=int,
+    help="Provide how many clusters to group dataset into",
+)
+prediction_subparser.add_argument(
+    "-c",
+    "--path_corpus_out",
+    action="store",
+    help="Path to save raw extracted corpus to or load (if composed with --load_data)",
+    required=True,
+)
+prediction_subparser.add_argument(
+    "-v",
+    "--visualize",
+    action="store_true",
+    help="If flag set - visualize results",
 )
 
 args = argument_parser.parse_args()

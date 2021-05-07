@@ -101,7 +101,8 @@ class FeaturesGenerator:
         self._converted_df["group"]    = self._df["group"].apply(self._convert_group)
 
         assert(self._df.shape == self._converted_df.shape, "shapes' missmatch")
-        self._is_df_numeric = True
+
+        self._is_df_numeric = not self._is_df_numeric
         return self._converted_df
 
     def _preserve_alphas(self) -> None:

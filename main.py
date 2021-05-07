@@ -25,13 +25,14 @@ if __name__ == "__main__":
 
                 if args.path_corpus_out:
                     db.save()
+            # Maybe for testing, but used below in `prediction` subparser
             elif args.load_data and args.path_corpus_out:
                 db = DataBuilder(None, args)
                 df, schema = db.load()
         except AttributeError:
             exit(1)
         except:
-            # probably move it, so that it doesn't crash
+            # probably move it up, so that it doesn't crash
             # Even though, it's already there too...
             print("Wiki error")
             exit(2)
@@ -39,11 +40,31 @@ if __name__ == "__main__":
         fg = FeaturesGenerator(df, schema)
         fg.mutate()  # dictionaries ready
         df_num = fg.toggle_df_representation()  # NL <-> idx
+        df_new = fg.toggle_df_representation()
     elif args.subparser == "prediction":
+        # to be decided whether we want to do as a continuation always or as a separate subproject as now
         if args.num_clusters:
-            print(args.num_clusters)
             args.load_data = True
             db = DataBuilder(None, args)
             df, schema = db.load()
-            cluster(args.num_clusters, df)
+
+            fg = FeaturesGenerator(df, schema)
+            fg.mutate()
+            df_num = fg.toggle_df_representation()
+
+            # choose one from: 
+            # 'description', 'content', 'description_VERB', 'description_NOUN',
+            # 'description_ADVERB', 'description_ADJECTIVE', 'content_VERB',
+            # 'content_NOUN', 'content_ADVERB', 'content_ADJECTIVE'
+
+            # df_input = df_num[[col for col in df_num.columns if col not in ["title"] + fg._target_features]]
+            # df_input = df[[col for col in df_num.columns if col not in ["title"] + fg._target_features]]
+            cluster(
+                df,
+                args.num_clusters,
+                "content"
+            )
+
+
+    print()
     

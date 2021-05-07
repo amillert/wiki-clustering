@@ -20,7 +20,7 @@ class Persistable:
             self._suffix = self._get_suffix(self.pardir)
             self._corpus_path = os.path.join(self.pardir, f"corpus_{self._suffix}.tsv")
         else:
-            # TODO(albert) test if works
+            # TODO(amillert) test if works
             self._suffix = self._get_suffix(os.path.dirname(self.pardir))
             self._corpus_path = self.pardir
 

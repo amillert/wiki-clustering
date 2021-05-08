@@ -1,4 +1,3 @@
-import ast
 import json
 import numpy as np
 import os
@@ -6,12 +5,14 @@ import pandas as pd
 
 
 class Persistable:
-    """
-    Makes sense only if --path_corpus_out flag provided; otherwise methods should fail
-    """
+    """Class to handle loading/saving corpus.
 
-    def __init__(self, path_corpus_out: str, toLoad: bool):
-        self.pardir = path_corpus_out.strip()
+    Args:
+        path (str): Path of the directory to save/saved corpus.
+        toLoad (bool): Whether to use saved corpus.
+    """
+    def __init__(self, path: str, toLoad: bool):
+        self.pardir = path.strip()
         self.toLoad = toLoad
 
         if os.path.isdir(self.pardir):
@@ -27,12 +28,18 @@ class Persistable:
         self._schema_path = os.path.join(self.pardir, f"schema_{self._suffix}.json")
 
     def _generate_schema(self, df: pd.DataFrame) -> dict:
-        # return json.dumps({
+        """Function to generate schema for data.
+
+        Args:
+            df (pd.DataFrame): Data.
+
+        Returns:
+            dict: Have key as column name and value as type of the data stored in the column.
+        """
         return {
             col: type(df[col][0]).__name__
             for col in df.columns
-        } #)
-        # }, indent=2)
+        } 
 
     def _get_suffix(self, path: str) -> int:
         return len(list(filter(lambda l: "corpus" in l, os.listdir(path)))) - int(self.toLoad)
@@ -54,18 +61,16 @@ class Persistable:
         for col_name in df.columns:
             col_type = schema[col_name]
             if col_type == "list":
-                # df[col_name].apply(ast.literal_eval)
                 df[col_name] = df[col_name].apply(eval)
-            # df[col_name].apply(eval(col_type))
 
         return df
 
     def _load_cache(self) -> pd.DataFrame:
-        """
-        Loads the most recent (number-wise) df and schema
-        """
+        """Loads the most recent (number-wise) df and schema
 
-        # self._suffix = len(os.listdir(self.pardir)) - 1 
+        Returns:
+            pd.DataFrame: Data.
+        """
         with open(os.path.join(self.pardir, f"corpus_{self._suffix}.tsv"), "r") as fin:
             cols = list(map(str.strip, fin.readline().split("\t")))
             data = list(

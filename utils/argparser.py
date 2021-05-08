@@ -1,13 +1,18 @@
+""" 
+    Collection of what arguments this project needs.
+"""
+
 import argparse
 import sys
 
 
 argument_parser = argparse.ArgumentParser(
     prog="",
-    description="Argument parser of the Data Science project",
-    epilog="Scrape (SPARQL, wptools) and then cluster data obtained from wikipedia",
+    description="Argument parser of the Data Science project.",
+    epilog="Scrape (SPARQL, wptools) and then cluster the data obtained from wikipedia",
     allow_abbrev=True
 )
+
 argument_parser.version = "0.1"
 
 subparsers = argument_parser.add_subparsers()
@@ -15,10 +20,6 @@ subparsers = argument_parser.add_subparsers()
 corpus_subparser = subparsers.add_parser(
     "corpus",
     help="Subparser for extracting and preprocessing corpus data."
-)
-prediction_subparser = subparsers.add_parser(
-    "prediction",
-    help="Subparser for visualization."
 )
 
 corpus_subparser.add_argument(
@@ -28,6 +29,7 @@ corpus_subparser.add_argument(
     type=int,
     help="Provide how many persons per occupation",
 )
+
 corpus_subparser.add_argument(
     "-k",
     "--sentences_per_article",
@@ -35,24 +37,25 @@ corpus_subparser.add_argument(
     type=int,
     help="Provide how many sentences per article (less will not be saved)",
 )
+
 corpus_subparser.add_argument(
     "-p",
     "--parallel",
     action="store_true",
     help="If flag set - run parsing (maybe other part as well) in parallel",
 )
+
 corpus_subparser.add_argument(
-    "-c",
-    "--path_corpus_out",
+    "-s",
+    "--save_path",
     action="store",
-    help="Path to save raw extracted corpus to or load (if composed with --load_data)",
+    help="Path to save raw extracted corpus to",
     required=True,
 )
-corpus_subparser.add_argument(
-    "-l",
-    "--load_data",
-    action="store_true",
-    help="If flag set - use --path_corpus_out to load most recent (if dir provided) or exact (if file provided)",
+
+prediction_subparser = subparsers.add_parser(
+    "prediction",
+    help="Subparser for visualization."
 )
 
 prediction_subparser.add_argument(
@@ -63,6 +66,7 @@ prediction_subparser.add_argument(
     help="Provide how many clusters to group dataset into",
     required=True,
 )
+
 prediction_subparser.add_argument(
     "-b",
     "--batch_size",
@@ -71,6 +75,7 @@ prediction_subparser.add_argument(
     help="Provide the size of mini-batch for classification",
     required=True,
 )
+
 prediction_subparser.add_argument(
     "-x",
     "--epochs",
@@ -79,6 +84,7 @@ prediction_subparser.add_argument(
     help="Provide the amount of epochs to learn",
     required=True,
 )
+
 prediction_subparser.add_argument(
     "-t",
     "--eta",
@@ -95,13 +101,15 @@ prediction_subparser.add_argument(
     help="Provide the percentage of top tokens to be kept after tfidf process",
     required=True,
 )
+
 prediction_subparser.add_argument(
-    "-c",
-    "--path_corpus_out",
+    "-s",
+    "--saved_path",
     action="store",
-    help="Path to save raw extracted corpus to or load (if composed with --load_data)",
+    help="Path to saved corpus for loading",
     required=True,
 )
+
 prediction_subparser.add_argument(
     "-d",
     "--n_hidden",
@@ -110,12 +118,14 @@ prediction_subparser.add_argument(
     help="Provide the amount of hidden units",
     required=True,
 )
-# prediction_subparser.add_argument(
-#     "-v",
-#     "--visualize",
-#     action="store_true",
-#     help="If flag set - visualize results",
-# )
+
+prediction_subparser.add_argument(
+    "-v",
+    "--visualize",
+    action="store_true",
+    help="If flag set - visualize results",
+    default=True
+)
 
 args = argument_parser.parse_args()
 args.subparser = sys.argv[1]

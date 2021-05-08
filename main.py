@@ -29,14 +29,8 @@ if __name__ == "__main__":
             elif args.load_data and args.path_corpus_out:
                 db = DataBuilder(None, args)
                 df, schema = db.load()
-        except AttributeError:
-            exit(1)
         except:
-            # probably move it up, so that it doesn't crash
-            # Even though, it's already there too...
-            print("Wiki error")
-            pass
-            # exit(2)
+            exit(1)
     elif args.subparser == "prediction":
         args.load_data = True
         db = DataBuilder(None, args)

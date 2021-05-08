@@ -3,6 +3,7 @@ from utils.argparser import args
 
 import nltk
 import threading
+import traceback
 import wptools
 from SPARQLWrapper import SPARQLWrapper, JSON
 
@@ -32,6 +33,7 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
 
             content = page.get_query().data["extext"].replace("\n", " ")
         except:
+            traceback.print_exc()
             print(f"Can't obtain content for entry: {title}")
             pass
         else:

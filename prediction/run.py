@@ -10,13 +10,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import torch
 from torch.utils.data import DataLoader
 
-from utils.model.custom_dataset import VectorizedDataset
-from utils.model.classifier import LogisticRegressor
+from .model.custom_dataset import VectorizedDataset
+from .model.classifier import LogisticRegressor
 from utils.funs import reduce, reduce_tensors
 
 
 class Predictor:
-    def __init__(self, df: pd.DataFrame, args: list):
+    def __init__(self, df: pd.DataFrame, targets: list, args: list):
         # clustering
         self._df             = df  # one from cluster
         self._num_clusters   = args.num_clusters
@@ -31,7 +31,7 @@ class Predictor:
 
         # classification
         self._data        = self.stacked_vectors.toarray()
-        self._targets     = self._df.category.tolist()
+        self._targets     = targets
         self._data_size   = len(self._data)
         self._batch_size  = args.batch_size
         self._num_batches = self._data_size // self._batch_size
@@ -184,7 +184,7 @@ class Predictor:
                 splitter[t]["y_train"].append(t)
         
         self.X_train = np.array(reduce([splitter[i]["X_train"] for i in range(6)]))
-        self.y_train = reduce([splitter[i]["y_train"] for i in range(6)]),
-        self.X_test = np.array(reduce([splitter[i]["X_test"] for i in range(6)])),
-        self.y_test = reduce([splitter[i]["y_test"] for i in range(6)])
+        self.y_train = reduce([splitter[i]["y_train"] for i in range(6)])
+        self.X_test  = np.array(reduce([splitter[i]["X_test"] for i in range(6)]))
+        self.y_test  = reduce([splitter[i]["y_test"] for i in range(6)])
         

@@ -1,8 +1,7 @@
 from corpus.preprocessing import DataBuilder
 from corpus.preprocessing import FeaturesGenerator
 from handle_wiki.extraction import executeJob
-# from prediction.clustering import cluster, classify
-from prediction.clustering import Predictor
+from prediction.run import Predictor
 from utils import queriesObject2Category
 from utils.argparser import args
 
@@ -45,7 +44,8 @@ if __name__ == "__main__":
 
         fg = FeaturesGenerator(df, schema)
         fg.mutate()  # gets features in-place
+        targets = fg.toggle_df_representation().category.values
 
-        predictor = Predictor(df, args)
+        predictor = Predictor(df, targets, args)
         predictor.cluster()
         predictor.classify()

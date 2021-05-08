@@ -78,11 +78,10 @@ class FeaturesGenerator:
         return self._converted_df if self._is_df_numeric else self._df
 
     def mutate(self):
-        """Process the data. 
+        """Process the data.
 
         Ref: https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
         """
-
         tag_rules = {
                  "VERB": ("V",  "v"),
                  "NOUN": ("N",  "n"),
@@ -116,7 +115,7 @@ class FeaturesGenerator:
         self._converted_df["category"] = self._df["category"].apply(self._convert_category)
         self._converted_df["group"]    = self._df["group"].apply(self._convert_group)
 
-        assert(self._df.shape == self._converted_df.shape, "shapes' missmatch")
+        assert self._df.shape == self._converted_df.shape, "shapes' missmatch"
 
         self._is_df_numeric = not self._is_df_numeric
         return self._converted_df
@@ -192,7 +191,7 @@ class DataBuilder(Persistable):
         load (bool, optional): Whether to load the saved data or not. Defaults to False.
 
     """
-    def __init__(self, data: list, path : str, load=False):
+    def __init__(self, data: list, path: str, load: bool=False):
         super(DataBuilder, self).__init__(path, load)
 
         self._df = None

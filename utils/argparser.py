@@ -1,5 +1,5 @@
 """ 
-    Collection of what arguments this project needs.
+    Collection of the arguments needed in the project.
 """
 
 import argparse
@@ -93,6 +93,7 @@ prediction_subparser.add_argument(
     help="Provide learning rate for classification model",
     required=True,
 )
+
 prediction_subparser.add_argument(
     "-k",
     "--keep_top_tokens",

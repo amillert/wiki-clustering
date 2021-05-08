@@ -3,15 +3,16 @@
 """
 
 from multiprocessing import Pool
+import traceback
 
 from corpus.preprocessing import DataBuilder, FeaturesGenerator
 from handle_wiki.extraction import executeJob
-from prediction.clustering import classify, cluster
+from prediction.run import Predictor
 from utils import queriesObject2Category
 from utils.argparser import args
-import traceback
 
-def main(args):
+
+if __name__ == "__main__":
     if args.subparser == "corpus":
         try:
             if args.parallel:
@@ -23,30 +24,21 @@ def main(args):
 
             db = DataBuilder(extractedRows, args.save_path, load=False)
             db.save()
-
-        except AttributeError:
-            exit(1)
-        except Exception: 
+        except Exception:
             traceback.print_exc()
-            # probably move it up, so that it doesn't crash
-            # Even though, it's already there too...
-            print("Wiki error")
-            exit(2)
-    
+            exit(1)
     elif args.subparser == "prediction":
         db = DataBuilder(None, args.saved_path, load=True)
         df, schema = db.load()
 
         fg = FeaturesGenerator(df, schema)
-        fg.mutate()
-        df_num = fg.toggle_df_representation()
+        fg.mutate()  # gets features in-place
+        targets = fg.toggle_df_representation().category.values
 
-        stacked_vectors = cluster(df, args.num_clusters, "content", args.keep_top_tokens)
-        classify(stacked_vectors.toarray(), df_num[["title", "category", "group"]], args)
+        predictor = Predictor(df, targets, args)
+        predictor.cluster()
+        predictor.classify()
 
         # TODO(nami) Do visualization
         if args.visualize:
             pass
-
-if __name__ == "__main__":
-    main(args)

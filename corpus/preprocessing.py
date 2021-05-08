@@ -78,7 +78,7 @@ class FeaturesGenerator:
         return self._converted_df if self._is_df_numeric else self._df
 
     def mutate(self):
-        """Process the data. 
+        """Process the data.
 
         Ref: https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
         """

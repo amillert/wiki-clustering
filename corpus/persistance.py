@@ -1,4 +1,3 @@
-import ast
 import json
 import numpy as np
 import os
@@ -67,7 +66,7 @@ class Persistable:
         return df
 
     def _load_cache(self) -> pd.DataFrame:
-        """ Loads the most recent (number-wise) df and schema
+        """Loads the most recent (number-wise) df and schema
 
         Returns:
             pd.DataFrame: Data.

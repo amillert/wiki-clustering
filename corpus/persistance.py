@@ -14,7 +14,7 @@ class Persistable:
         self.pardir = path_corpus_out.strip()
         self.toLoad = toLoad
 
-        if os.path.isdir(self.pardir):
+        if self.pardir.find(".") == -1:  # if not file-like path...
             os.makedirs(self.pardir, exist_ok=True)
 
             self._suffix = self._get_suffix(self.pardir)
@@ -27,12 +27,10 @@ class Persistable:
         self._schema_path = os.path.join(self.pardir, f"schema_{self._suffix}.json")
 
     def _generate_schema(self, df: pd.DataFrame) -> dict:
-        # return json.dumps({
         return {
             col: type(df[col][0]).__name__
             for col in df.columns
-        } #)
-        # }, indent=2)
+        }
 
     def _get_suffix(self, path: str) -> int:
         return len(list(filter(lambda l: "corpus" in l, os.listdir(path)))) - int(self.toLoad)

@@ -69,6 +69,7 @@ class Predictor:
         print(f"Adjusted Rand-Index: {metrics.adjusted_rand_score(self._targets, cluster_res.labels_):.4f}")
         for i, col in enumerate(self._features_cols):
             print(f"Silhouette Coefficient for {col}: {metrics.silhouette_score(self._vectors[i], cluster_res.labels_, sample_size=1000):0.4f}")
+        print()
 
     def classify(self) -> None:
         # TODO(amillert): 1. Probably refactor and put logic into a class
@@ -79,8 +80,6 @@ class Predictor:
         self._testing()
 
     def _training(self):
-        print()
-            
         batches = DataLoader(
             dataset=VectorizedDataset(self.X_train, self.y_train),
             drop_last=True,

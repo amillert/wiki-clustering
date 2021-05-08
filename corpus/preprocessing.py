@@ -1,19 +1,25 @@
-from utils import DataRow
-from corpus.persistance import Persistable
+"""
+    Contains classes and functions to manage the documents used as data. 
+"""
 
 from functools import reduce
+
 import nltk
 from nltk.tag import StanfordNERTagger
 import pandas as pd
 
+from corpus.persistance import Persistable
+from utils import DataRow
+
 
 class TextNormalizer:
+    """Class that handles normalizing text.
+
+    Args:
+        text (list): list of texts to be processed. 
+    """
     def __init__(self, text: list):
         self._normalized = self._normalize(text)
-
-    @staticmethod
-    def _tokenize(text: list) -> list:
-        return [nltk.word_tokenize(sentence) for sentence in text]
 
     def _lowercase(self, text: list) -> list:
         return [[token.strip().lower() for token in sentence]
@@ -26,18 +32,22 @@ class TextNormalizer:
                 for sentence in self._lowercase(text)]
 
     def _normalize(self, text: list) -> list:
-        # return self._removeStopWords(text)
         return [xi for x in self._removeStopWords(text) for xi in x]
 
     def getNormalized(self) -> list:
         return self._normalized
 
+    @staticmethod
+    def _tokenize(text: list) -> list:
+        return [nltk.word_tokenize(sentence) for sentence in text]
 
 class FeaturesGenerator:
-    """
-    Get NERs, POSs, etc.
-    """
+    """Generate various features from corpus.
 
+    Args:
+        df (pd.DataFrame): Data. 
+        schema (dict): Contains information about columns.
+    """
     def __init__(self, df: pd.DataFrame, schema: dict):
         self._df              = df
         self._is_df_numeric   = False  # for conversion
@@ -68,10 +78,10 @@ class FeaturesGenerator:
         return self._converted_df if self._is_df_numeric else self._df
 
     def mutate(self):
-        """
-        https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
-        """
+        """Process the data. 
 
+        Ref: https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+        """
         tag_rules = {
                  "VERB": ("V",  "v"),
                  "NOUN": ("N",  "n"),
@@ -84,7 +94,12 @@ class FeaturesGenerator:
         self._filter_pos_and_lemmatize("POS", tag_rules)
         self._generate_dictionaries()
     
-    def toggle_df_representation(self):
+    def toggle_df_representation(self) -> pd.DataFrame:
+        """Toggle str of text to numerical representation and vice versa.
+
+        Returns:
+            pd.DataFrame: Data.
+        """
         if not self._converted_df.empty:
             return self.get_df()
 
@@ -100,7 +115,7 @@ class FeaturesGenerator:
         self._converted_df["category"] = self._df["category"].apply(self._convert_category)
         self._converted_df["group"]    = self._df["group"].apply(self._convert_group)
 
-        assert(self._df.shape == self._converted_df.shape, "shapes' missmatch")
+        assert self._df.shape == self._converted_df.shape, "shapes' missmatch"
 
         self._is_df_numeric = not self._is_df_numeric
         return self._converted_df
@@ -168,19 +183,25 @@ class FeaturesGenerator:
 
 
 class DataBuilder(Persistable):
-    def __init__(self, data: list, args):
-        super(DataBuilder, self).__init__(args.path_corpus_out, args.load_data)
+    """Class to build collected texts to formatted data.
 
-        # implemented if args.load_data flag set or when loading data with self.load
+    Args:
+        data (list): Contains raw text data. Pass None is only loading the data from saved ones.
+        path (str): Path to a directory to save/saved data.
+        load (bool, optional): Whether to load the saved data or not. Defaults to False.
+
+    """
+    def __init__(self, data: list, path: str, load: bool=False):
+        super(DataBuilder, self).__init__(path, load)
+
         self._df = None
         self._schema = None
 
-        if not args.load_data:
+        if not load:
             self._data = data
             self._columns = data[0][0]._fields
             self._df = self._getNormalizedDataFrame()
             self._columns_str = "\t".join(self._df.columns)
-
             self._schema = self._generate_schema(self._df)
 
     @staticmethod

@@ -1,7 +1,8 @@
 from corpus.preprocessing import DataBuilder
 from corpus.preprocessing import FeaturesGenerator
 from handle_wiki.extraction import executeJob
-from prediction.clustering import cluster, classify
+# from prediction.clustering import cluster, classify
+from prediction.clustering import Predictor
 from utils import queriesObject2Category
 from utils.argparser import args
 
@@ -35,22 +36,16 @@ if __name__ == "__main__":
             # probably move it up, so that it doesn't crash
             # Even though, it's already there too...
             print("Wiki error")
-            exit(2)
+            pass
+            # exit(2)
+    elif args.subparser == "prediction":
+        args.load_data = True
+        db = DataBuilder(None, args)
+        df, schema = db.load()
 
         fg = FeaturesGenerator(df, schema)
-        fg.mutate()  # dictionaries ready
-        df_num = fg.toggle_df_representation()  # NL <-> idx
-        df_new = fg.toggle_df_representation()
-    elif args.subparser == "prediction":
-        # to be decided whether we want to do as a continuation always or as a separate subproject as now
-        if args.num_clusters:
-            args.load_data = True
-            db = DataBuilder(None, args)
-            df, schema = db.load()
+        fg.mutate()  # gets features in-place
 
-            fg = FeaturesGenerator(df, schema)
-            fg.mutate()
-            df_num = fg.toggle_df_representation()
-
-            stacked_vectors = cluster(df, args.num_clusters, "content", args.keep_top_tokens)
-            classify(stacked_vectors.toarray(), df_num[["title", "category", "group"]], args)
+        predictor = Predictor(df, args)
+        predictor.cluster()
+        predictor.classify()

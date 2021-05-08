@@ -1,7 +1,7 @@
 from corpus.preprocessing import DataBuilder
 from corpus.preprocessing import FeaturesGenerator
 from handle_wiki.extraction import executeJob
-from prediction.clustering import cluster
+from prediction.clustering import cluster, classify
 from utils import queriesObject2Category
 from utils.argparser import args
 
@@ -52,19 +52,5 @@ if __name__ == "__main__":
             fg.mutate()
             df_num = fg.toggle_df_representation()
 
-            # choose one from: 
-            # 'description', 'content', 'description_VERB', 'description_NOUN',
-            # 'description_ADVERB', 'description_ADJECTIVE', 'content_VERB',
-            # 'content_NOUN', 'content_ADVERB', 'content_ADJECTIVE'
-
-            # df_input = df_num[[col for col in df_num.columns if col not in ["title"] + fg._target_features]]
-            # df_input = df[[col for col in df_num.columns if col not in ["title"] + fg._target_features]]
-            cluster(
-                df,
-                args.num_clusters,
-                "content"
-            )
-
-
-    print()
-    
+            stacked_vectors = cluster(df, args.num_clusters, "content", args.keep_top_tokens)
+            classify(stacked_vectors.toarray(), df_num[["title", "category", "group"]], args)

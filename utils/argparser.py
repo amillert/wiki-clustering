@@ -61,6 +61,39 @@ prediction_subparser.add_argument(
     action="store",
     type=int,
     help="Provide how many clusters to group dataset into",
+    required=True,
+)
+prediction_subparser.add_argument(
+    "-b",
+    "--batch_size",
+    action="store",
+    type=int,
+    help="Provide the size of mini-batch for classification",
+    required=True,
+)
+prediction_subparser.add_argument(
+    "-x",
+    "--epochs",
+    action="store",
+    type=int,
+    help="Provide the amount of epochs to learn",
+    required=True,
+)
+prediction_subparser.add_argument(
+    "-t",
+    "--eta",
+    action="store",
+    type=float,
+    help="Provide learning rate for classification model",
+    required=True,
+)
+prediction_subparser.add_argument(
+    "-k",
+    "--keep_top_tokens",
+    action="store",
+    type=float,
+    help="Provide the percentage of top tokens to be kept after tfidf process",
+    required=True,
 )
 prediction_subparser.add_argument(
     "-c",
@@ -70,11 +103,19 @@ prediction_subparser.add_argument(
     required=True,
 )
 prediction_subparser.add_argument(
-    "-v",
-    "--visualize",
-    action="store_true",
-    help="If flag set - visualize results",
+    "-d",
+    "--n_hidden",
+    action="store",
+    type=int,
+    help="Provide the amount of hidden units",
+    required=True,
 )
+# prediction_subparser.add_argument(
+#     "-v",
+#     "--visualize",
+#     action="store_true",
+#     help="If flag set - visualize results",
+# )
 
 args = argument_parser.parse_args()
 args.subparser = sys.argv[1]

@@ -1,6 +1,8 @@
+from collections import defaultdict
 import numpy as np
 import os
 import pandas as pd
+import random
 from scipy.sparse import hstack
 from sklearn import metrics
 from sklearn.cluster import KMeans
@@ -10,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from utils.model.custom_dataset import VectorizedDataset
 from utils.model.classifier import LogisticRegressor
-from utils.funs import reduce
+from utils.funs import reduce, reduce_tensors
 
 
 def cluster(df: pd.DataFrame, num_clusters: int, col: str, keep_top: float) -> None:
@@ -51,35 +53,60 @@ def cluster(df: pd.DataFrame, num_clusters: int, col: str, keep_top: float) -> N
     
     return stacked_vectors
 
-def evaluate(y_gold: list, y_pred: list) -> None:
-    golds = reduce(y_gold)
-    preds = reduce(y_pred)
+def evaluate(y_gold: list, y_pred: list, is_train: bool=True) -> None:
+    golds = reduce_tensors(y_gold) if is_train else y_gold.tolist()
+    preds = reduce_tensors(y_pred) if is_train else y_pred.tolist()
 
     prec, rec, f1, _ = metrics.precision_recall_fscore_support(golds, preds, average="macro", zero_division=0)
     acc = metrics.accuracy_score(golds, preds)
-    print(f"accuracy:  {acc:.4f}")
-    print()
     print("Macro averaging")
     print(f"precision: {prec:.4f}")
     print(f"recall:    {rec:.4f}")
     print(f"f1 score:  {f1:.4f}")
-    # print()
-    # print("Micro averaging")  # all equal to accuracy
-    # prec, rec, f1, _ = metrics.precision_recall_fscore_support(golds, preds, average="micro", zero_division=0)
-    # print(f"precision: {prec:.4f}")
-    # print(f"recall:    {rec:.4f}")
-    # print(f"f1 score:  {f1:.4f}")
+    print(f"accuracy:  {acc:.4f}")
+
+def balanced_split(data: np.array, targets: pd.DataFrame, how_many: int) -> tuple:
+    splitter = {
+        i: defaultdict(list)
+        for i in range(6)  # categories
+    }
+
+    zipped = list(zip(data, targets.category))
+    random.shuffle(zipped)
+
+    for d, t in zipped:
+        if len(splitter[t]["X_test"]) < how_many:
+            splitter[t]["X_test"].append(d)
+            splitter[t]["y_test"].append(t)
+        else:
+            splitter[t]["X_train"].append(d)
+            splitter[t]["y_train"].append(t)
+    
+    return (
+        np.array(reduce([splitter[i]["X_train"] for i in range(6)])),
+        reduce([splitter[i]["y_train"] for i in range(6)]),
+        np.array(reduce([splitter[i]["X_test"] for i in range(6)])),
+        reduce([splitter[i]["y_test"] for i in range(6)])
+    )
+    
 
 def classify(data: np.array, targets: pd.DataFrame, args: list) -> None:
-    # TODO(amillert): So far it's train data only (implement testing?)
-    # TODO(amillert): Probably refactor and put logic into a class
-    # TODO(amillert): data should probably come from this class, not from cluster itself
+    # TODO(amillert): 1. Probably refactor and put logic into a class
+    # TODO(amillert): 2. Data should probably come from this class, not from cluster itself
+    # TODO(amillert): 3. Lower eta each few epochs
+
+    # Train
     data_size   = len(data)
     n_features  = data.shape[1]
     num_batches = data_size // args.batch_size
 
+    how_many = int(data_size // 6 * 0.1)  # per category in test
+    X_train, y_train, X_test, y_test = balanced_split(data, targets, how_many)
+
+    print()
+        
     batches = DataLoader(
-        dataset=VectorizedDataset(data, targets.category.values),
+        dataset=VectorizedDataset(X_train, y_train),
         drop_last=True,
         batch_size=args.batch_size,
         shuffle=True,
@@ -91,7 +118,8 @@ def classify(data: np.array, targets: pd.DataFrame, args: list) -> None:
         n_out_classes=6  # writer, singer, painter, politician, mathematician, architect
     )
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.eta)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.eta)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.eta, momentum=0.9)
 
     for epoch in range(1, args.epochs + 1):
         loss_total = 0.0
@@ -118,9 +146,24 @@ def classify(data: np.array, targets: pd.DataFrame, args: list) -> None:
 
         print("—"*100)
         print(f"Epoch: {epoch} out of {args.epochs}")
-        print(f"Mean loss: {loss_total / num_batches:.4f}")
+        print(f"Mean loss:  {loss_total / num_batches:.4f}")
         print(f"Total loss: {loss_total:.4f}")
         evaluate(y_gold, y_pred)
         print("—"*100)
+
+    # Evaluate
+    for X, y in DataLoader(
+        dataset=VectorizedDataset(X_test, y_test),
+        drop_last=True,
+        batch_size=len(X_test),
+        shuffle=True,
+        num_workers=os.cpu_count()
+    ): break
+
+    y_pred = torch.argmax(model(X), dim=1)
+
+    print("Evaluation of the model")
+    evaluate(y, y_pred, False)
+    print("—"*100)
 
     print()

@@ -38,7 +38,10 @@ if __name__ == "__main__":
         predictor = Predictor(df, num_sub_df, args)
         predictor.cluster_all()
         clustering_res = predictor.get_clustering_results()
+
         predictor.classify_all()
+        classification_res = predictor.get_classification_results()
+        print()
 
         # TODO(nami) Do visualization
         if args.visualize:

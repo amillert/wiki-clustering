@@ -28,16 +28,13 @@ class Predictor:
             )
         )
         self._keep_top        = args.keep_top_tokens
-
         self._vectors         = self._vectorize_all()
         self._tokens          = pd.get_dummies(self._df.content.apply(pd.Series))
         self._token_freqs     = self._vectorize(self._df.content.apply(" ".join), idf=False)
         self._stacked_vectors = hstack(self._vectors)
 
         # classification
-        # self._contents          = num_content_target.content.values
         self._data              = self._stacked_vectors.toarray()
-        # self._targets           = targets
         self._target_groups     = targets.group.values
         self._target_categories = targets.category.values
         self._data_size         = len(self._data)
@@ -57,7 +54,7 @@ class Predictor:
             categories=False
         )
 
-        self.model_categories = LogisticRegressor(
+        self.model_categories     = LogisticRegressor(
             in_features=self._data.shape[1],  # vector size
             n_hidden=args.n_hidden,
             n_out_classes=6  # writer, singer, painter, politician, mathematician, architect
@@ -68,7 +65,7 @@ class Predictor:
             lr=args.eta, momentum=0.9
         )
 
-        self.model_groups = LogisticRegressor(
+        self.model_groups     = LogisticRegressor(
             in_features=self._data.shape[1],  # vector size
             n_hidden=args.n_hidden,
             n_out_classes=2  # artists, non-artists
@@ -80,7 +77,8 @@ class Predictor:
         )
 
         # for visualization
-        self._cluster_res = []
+        self._cluster_res  = []
+        self._classify_res = []
 
     def cluster_all(self) -> None:
         self.cluster(categories=False)
@@ -136,6 +134,12 @@ class Predictor:
             "6cluster": self._cluster_res[3:]
         }
 
+    def get_classification_results(self):
+        return {
+            "groups": self._classify_res[:2],  # first two belong to group evaluation
+            "categories": self._classify_res[2:]  # next six belong to category evaluation
+        }
+
     def _training(self, categories: bool):
         model     = self.model_categories if categories else self.model_groups
         criterion = self.criterion_categories if categories else self.criterion_groups
@@ -152,6 +156,8 @@ class Predictor:
             shuffle=True,
             num_workers=os.cpu_count()
         )
+
+        print(f"Model training for {'categories' if categories else 'groups'}")
 
         for epoch in range(1, self._epochs + 1):
             loss_total = 0.0
@@ -173,8 +179,8 @@ class Predictor:
                 y_pred.append(torch.argmax(output, dim=1))
                 y_gold.append(y)
 
-                if not batch_count % 10:
-                    print(f"Batch number {batch_count}, avg loss: {loss_total / batch_count:.4f}")
+                # if not batch_count % 10:
+                #     print(f"Batch number {batch_count}, avg loss: {loss_total / batch_count:.4f}")
 
             # prints will probably be removed once all visualizations work
             print("—"*100)
@@ -182,7 +188,8 @@ class Predictor:
             print(f"Mean loss:  {loss_total / self._num_batches:.4f}")
             print(f"Total loss: {loss_total:.4f}")
             self._evaluate(y_gold, y_pred)
-            print("—"*100)
+
+        print("—"*100)
 
     def _testing(self, categories: bool):
         model = self.model_categories if categories else self.model_groups
@@ -224,8 +231,8 @@ class Predictor:
             for col in self._features_cols
         ]
 
-    @staticmethod
-    def _evaluate(y_gold: list, y_pred: list, is_train: bool=True) -> None:
+    def _evaluate(self, y_gold: list, y_pred: list, is_train: bool=True) -> None:
+        # check if list of tensors
         golds = reduce_tensors(y_gold) if is_train else y_gold.tolist()
         preds = reduce_tensors(y_pred) if is_train else y_pred.tolist()
 
@@ -236,11 +243,39 @@ class Predictor:
             zero_division=0
         )
         acc = metrics.accuracy_score(golds, preds)
-        print("Macro averaging")
-        print(f"precision: {prec:.4f}")
-        print(f"recall:    {rec:.4f}")
-        print(f"f1 score:  {f1:.4f}")
-        print(f"accuracy:  {acc:.4f}")
+
+        if not is_train:
+            print("Macro averaging")
+            print(f"precision: {prec:.4f}")
+            print(f"recall:    {rec:.4f}")
+            print(f"f1 score:  {f1:.4f}")
+            print(f"accuracy:  {acc:.4f}")
+        
+        if not is_train:
+            folds = set(golds)
+            for fold in folds:
+                # gpf -> gold_positions_per_fold
+                # ppf -> pred_positions_per_fold
+                gpf = self._groupby(fold, golds)
+                ppf = self._groupby(fold, preds)
+
+                acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
+                self._classify_res.append((fold, acc))
+
+    @staticmethod
+    def _groupby(fold: int, xs: list) -> set:
+        return set(
+            map(
+                lambda l: l[0],
+                filter(
+                    lambda l: l[1] == fold,
+                    map(
+                        lambda l: l,
+                        enumerate(xs)
+                    )
+                )
+            )
+        )
 
     def _balanced_split(self, how_many: int, categories: bool):
         uniq_vals = 6 if categories else 2
@@ -275,5 +310,3 @@ class Predictor:
             self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
             self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
             self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
-
-        

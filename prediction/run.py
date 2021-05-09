@@ -1,12 +1,16 @@
-from collections import defaultdict
-import numpy as np
+from collections import defaultdict, namedtuple
 import os
-import pandas as pd
 import random
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 from scipy.sparse import hstack, coo_matrix
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn import metrics
 import torch
 from torch.utils.data import DataLoader
 
@@ -18,6 +22,13 @@ from utils.funs import reduce, reduce_tensors
 
 class Predictor:
     def __init__(self, df: pd.DataFrame, targets: pd.DataFrame, args: list):
+        """Class contains classifier and cluster
+
+        Args:
+            df (pd.DataFrame): Input data.
+            targets (pd.DataFrame): Correct output (both categories and groups).
+            args (namedtuple):
+        """
         # clustering
         self._df             = df  # one from cluster
         self._num_clusters   = args.num_clusters
@@ -261,6 +272,17 @@ class Predictor:
 
                 acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
                 self._classify_res.append((fold, acc))
+          
+        cm = metrics.confusion_matrix(golds, preds)
+        cnt_unique = len(set(y_gold))  # y_gold for sure not golds?
+        plt.figure(figsize=(cnt_unique, cnt_unique))
+        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square=True, cmap='Blues_r')
+        plt.ylabel('Actual group')
+        plt.xlabel('Predicted group')
+        all_sample_title = 'Confusion Matrix'
+        plt.title(all_sample_title, size=15)
+
+        plt.show()
 
     @staticmethod
     def _groupby(fold: int, xs: list) -> set:
@@ -277,20 +299,20 @@ class Predictor:
             )
         )
 
+
     def _balanced_split(self, how_many: int, categories: bool):
         uniq_vals = 6 if categories else 2
         targets   = self._target_categories if categories else self._target_groups
 
         splitter = {
             i: defaultdict(list)
-            for i in range(uniq_vals)  # categories
+            for i in range(uniq_vals)
         }
 
         zipped = list(zip(self._data, targets))
         random.shuffle(zipped)  # inplace
 
-        # self._target must be converted to numeric
-        for d, t in zipped:
+        for d, t in zipped:  # data, target
             if len(splitter[t]["X_test"]) < how_many:
                 splitter[t]["X_test"].append(d)
                 splitter[t]["y_test"].append(t)
@@ -310,3 +332,52 @@ class Predictor:
             self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
             self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
             self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+        
+    
+def cluster_visualize(data :dict, labels :list):
+    """Visualization of evaluation methods among different number of clusters.
+
+    Args:
+        data (dict): Coniatins result of evaluation scores.
+        labels (list(str)): Ways of representing text.
+    """
+    labels = ["Token", "tfidf", "token freq"]
+    data = {"2cluster" : {"silhouette" : [12, 13, 14], "homogeneity": [12,13,14]},
+    "6cluster" : {"silhouette" : [15, 16, 17], "homogeneity": [15,16,17]},
+    }
+
+    x_pos =  np.arange(len(labels)) 
+    width = 0.35  # the width of the bars
+
+    for key in data["2cluster"].keys():
+        fig, ax = plt.subplots()
+        rects1 = ax.bar(x_pos - width/2, data["2cluster"][key], width, label='2-clusters')
+        rects2 = ax.bar(x_pos + width/2, data["6cluster"][key], width, label='6-clusters')
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        ax.set_ylabel('Scores')
+        ax.set_ylim(top=20)
+        ax.set_title(f'{key} scores by ways of representing text and number of clusters')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.legend()
+
+        ax.bar_label(rects1, padding=3)
+        ax.bar_label(rects2, padding=3)
+
+        fig.tight_layout()
+
+    plt.show()
+
+def classify_visualize(accs : list, labels : list):
+    accs = [0.98, 0.22]
+    labels = ["artists","non artists"] # or ["politicial", etc...]
+
+    x_pos = np.arange(len(labels)) 
+
+    plt.bar(x_pos, accs, color='green')
+    plt.ylabel('Accuracy scores')
+    plt.xlabel('Group')
+    plt.title('Accuracy by group')
+    plt.xticks(x_pos, labels)
+    plt.show()

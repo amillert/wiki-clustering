@@ -22,4 +22,10 @@ queriesObject2Category = {
 }
 
 DataRow = namedtuple("DataRow",
-                     ["title", "description", "content", "category", "group"])
+                     ["title", "description", "content", "category", "group"]
+)
+
+ClusterMetrics = namedtuple(
+    "ClusterMetrics",
+    ["Homogeneity", "Completeness", "VMeasure", "AdjustedRandIndex", "Silhouette"]
+)

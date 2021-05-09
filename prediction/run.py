@@ -12,11 +12,12 @@ from torch.utils.data import DataLoader
 
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
+from utils import ClusterMetrics
 from utils.funs import reduce, reduce_tensors
 
 
 class Predictor:
-    def __init__(self, df: pd.DataFrame, targets: list, args: list):
+    def __init__(self, df: pd.DataFrame, targets: pd.DataFrame, args: list):
         # clustering
         self._df             = df  # one from cluster
         self._num_clusters   = args.num_clusters
@@ -26,62 +27,126 @@ class Predictor:
                 self._df.columns
             )
         )
-        self._vectors        = self._vectorize_all(args.keep_top_tokens)
-        self.stacked_vectors = hstack(self._vectors)
+        self._keep_top        = args.keep_top_tokens
+
+        self._vectors         = self._vectorize_all()
+        self._tokens          = pd.get_dummies(self._df.content.apply(pd.Series))
+        self._token_freqs     = self._vectorize(self._df.content.apply(" ".join), idf=False)
+        self._stacked_vectors = hstack(self._vectors)
 
         # classification
-        self._data        = self.stacked_vectors.toarray()
-        self._targets     = targets
-        self._data_size   = len(self._data)
-        self._batch_size  = args.batch_size
-        self._num_batches = self._data_size // self._batch_size
-        self._epochs      = args.epochs
+        # self._contents          = num_content_target.content.values
+        self._data              = self._stacked_vectors.toarray()
+        # self._targets           = targets
+        self._target_groups     = targets.group.values
+        self._target_categories = targets.category.values
+        self._data_size         = len(self._data)
+        self._batch_size        = args.batch_size
+        self._num_batches       = self._data_size // self._batch_size
+        self._epochs            = args.epochs
 
-        # produces X_train, y_train, X_test, y_test
+        test_size = int(self._data_size // 6 * 0.1)
+        # produces X_train, y_train, X_test, y_test for categories
         self._balanced_split(
-            int(self._data_size // 6 * 0.1)  # 10% per category in test data
+            test_size,  # 10% per category in test data
+            categories=True
+        )
+        # produces X_train, y_train, X_test, y_test for groups
+        self._balanced_split(
+            test_size,  # 10% per group in test data
+            categories=False
         )
 
-        self.model = LogisticRegressor(
+        self.model_categories = LogisticRegressor(
             in_features=self._data.shape[1],  # vector size
             n_hidden=args.n_hidden,
             n_out_classes=6  # writer, singer, painter, politician, mathematician, architect
         )
-
-        self.criterion = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=args.eta, momentum=0.9)
-        # optimizer = torch.optim.Adam(model.parameters(), lr=args.eta)
-
-    def cluster(self) -> None:
-        kmeans = KMeans(
-            n_clusters=self._num_clusters,
-            random_state=77,
-            max_iter=300,
-            init="k-means++",
+        self.criterion_categories = torch.nn.CrossEntropyLoss()
+        self.optimizer_categories = torch.optim.SGD(
+            self.model_categories.parameters(),
+            lr=args.eta, momentum=0.9
         )
-        cluster_res = kmeans.fit(self.stacked_vectors)
 
-        # TODO(amillert): Grid search to find best set of features + hyper-params settings
+        self.model_groups = LogisticRegressor(
+            in_features=self._data.shape[1],  # vector size
+            n_hidden=args.n_hidden,
+            n_out_classes=2  # artists, non-artists
+        )
+        self.criterion_groups = torch.nn.CrossEntropyLoss()
+        self.optimizer_groups = torch.optim.SGD(
+            self.model_groups.parameters(),
+            lr=args.eta, momentum=0.9
+        )
 
-        print(f"Homogeneity: {metrics.homogeneity_score(self._targets, cluster_res.labels_):0.4f}")
-        print(f"Completeness: {metrics.completeness_score(self._targets, cluster_res.labels_):0.4f}")
-        print(f"V-measure: {metrics.v_measure_score(self._targets, cluster_res.labels_):0.4f}")
-        print(f"Adjusted Rand-Index: {metrics.adjusted_rand_score(self._targets, cluster_res.labels_):.4f}")
-        for i, col in enumerate(self._features_cols):
-            print(f"Silhouette Coefficient for {col}: {metrics.silhouette_score(self._vectors[i], cluster_res.labels_, sample_size=1000):0.4f}")
-        print()
+        # for visualization
+        self._cluster_res = []
 
-    def classify(self) -> None:
-        # TODO(amillert): 1. Probably refactor and put logic into a class
-        # TODO(amillert): 2. Data should probably come from this class, not from cluster itself
+    def cluster_all(self) -> None:
+        self.cluster(categories=False)
+        self.cluster(categories=True)
+
+    def cluster(self, categories: bool) -> None:
+        clusters = 6 if categories else 2
+        targets = self._target_categories if categories else self._target_groups
+        # 3 models since there are 3 methods
+        kmeans1 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
+        kmeans2 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
+        kmeans3 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
+        
+        cluster_res_all = [
+            kmeans1.fit(self._tokens),
+            kmeans2.fit(self._token_freqs),
+            kmeans3.fit(self._stacked_vectors)
+        ]
+
+        for cluster_res in cluster_res_all:
+            homogeneity       = metrics.homogeneity_score(targets, cluster_res.labels_)
+            completeness      = metrics.completeness_score(targets, cluster_res.labels_)
+            vMeasure          = metrics.v_measure_score(targets, cluster_res.labels_)
+            adjustedRandIndex = metrics.adjusted_rand_score(targets, cluster_res.labels_)
+            silhouette        = np.mean([metrics.silhouette_score(
+                self._vectors[i],
+                cluster_res.labels_,
+                sample_size=1000
+                ) for i, col in enumerate(self._features_cols)
+            ])
+
+            self._cluster_res.append(
+                ClusterMetrics( homogeneity,
+                    completeness,
+                    vMeasure,
+                    adjustedRandIndex,
+                    silhouette
+                )
+            )
+
+    def classify_all(self) -> None:
+        self.classify(categories=False)
+        self.classify(categories=True)
+
+    def classify(self, categories: bool) -> None:
         # TODO(amillert): 3. Lower eta each few epochs
+        self._training(categories)
+        self._testing(categories)
 
-        self._training()
-        self._testing()
+    def get_clustering_results(self):
+        return {
+            "2cluster": self._cluster_res[:3],
+            "6cluster": self._cluster_res[3:]
+        }
 
-    def _training(self):
+    def _training(self, categories: bool):
+        model     = self.model_categories if categories else self.model_groups
+        criterion = self.criterion_categories if categories else self.criterion_groups
+        optimizer = self.optimizer_categories if categories else self.optimizer_groups
+        X_y_pair = (
+            (self.X_train_categories, self.y_train_categories) if categories
+            else (self.X_train_groups, self.y_train_groups)
+        )
+
         batches = DataLoader(
-            dataset=VectorizedDataset(self.X_train, self.y_train),
+            dataset=VectorizedDataset(*X_y_pair),
             drop_last=True,
             batch_size=self._batch_size,
             shuffle=True,
@@ -96,14 +161,14 @@ class Predictor:
             for X, y in batches:
                 batch_count += 1
 
-                output = self.model(X)
+                output = model(X)
 
-                loss = self.criterion(output, y)
+                loss = criterion(output, y)
                 loss_total += loss.item()
 
-                self.optimizer.zero_grad()
+                optimizer.zero_grad()
                 loss.backward()
-                self.optimizer.step()
+                optimizer.step()
 
                 y_pred.append(torch.argmax(output, dim=1))
                 y_gold.append(y)
@@ -111,6 +176,7 @@ class Predictor:
                 if not batch_count % 10:
                     print(f"Batch number {batch_count}, avg loss: {loss_total / batch_count:.4f}")
 
+            # prints will probably be removed once all visualizations work
             print("—"*100)
             print(f"Epoch: {epoch} out of {self._epochs}")
             print(f"Mean loss:  {loss_total / self._num_batches:.4f}")
@@ -118,36 +184,43 @@ class Predictor:
             self._evaluate(y_gold, y_pred)
             print("—"*100)
 
-    def _testing(self):
+    def _testing(self, categories: bool):
+        model = self.model_categories if categories else self.model_groups
+        X_y_pair = (
+            (self.X_train_categories, self.y_train_categories) if categories
+            else (self.X_train_groups, self.y_train_groups)
+        )
+
         for X, y in DataLoader(
-            dataset=VectorizedDataset(self.X_test, self.y_test),
+            dataset=VectorizedDataset(*X_y_pair),
             drop_last=True,
-            batch_size=len(self.X_test),
+            batch_size=len(X_y_pair[1]),
             shuffle=True,
             num_workers=os.cpu_count()
         ): break
 
-        y_pred = torch.argmax(self.model(X), dim=1)
+        y_pred = torch.argmax(model(X), dim=1)
 
-        print("Evaluation of the model")
+        print(f"Evaluation of the model for {'categories' if categories else 'groups'} in testing")
         self._evaluate(y, y_pred, False)
         print("—"*100)
 
         print()
 
-    def _vectorize_all(self, keep_top: float) -> list:
-        def _vectorize(series: pd.Series) -> coo_matrix:
-            tfidf = TfidfVectorizer(
-                max_features=int(len({xi for x in series.tolist() for xi in x}) * keep_top),
-                use_idf=True,
-                ngram_range=(1, 3),
-            )
+    def _vectorize(self, series: pd.Series, idf: bool) -> coo_matrix:
+        tfidf = TfidfVectorizer(
+            max_features=int(len({xi for x in series.tolist() for xi in x}) * self._keep_top),
+            use_idf=idf,
+            ngram_range=(1, 3),
+            lowercase=False,
+        )
 
-            return tfidf.fit_transform(series.values)
+        return tfidf.fit_transform(series.values)
 
+    def _vectorize_all(self) -> list:
         return [
-            _vectorize(self._df[col].apply(" ".join))
             # TODO(amillert): Preferably fix it so there's no need for " ".join
+            self._vectorize(self._df[col].apply(" ".join), idf=True)
             for col in self._features_cols
         ]
 
@@ -156,7 +229,12 @@ class Predictor:
         golds = reduce_tensors(y_gold) if is_train else y_gold.tolist()
         preds = reduce_tensors(y_pred) if is_train else y_pred.tolist()
 
-        prec, rec, f1, _ = metrics.precision_recall_fscore_support(golds, preds, average="macro", zero_division=0)
+        prec, rec, f1, _ = metrics.precision_recall_fscore_support(
+            golds,
+            preds,
+            average="macro",
+            zero_division=0
+        )
         acc = metrics.accuracy_score(golds, preds)
         print("Macro averaging")
         print(f"precision: {prec:.4f}")
@@ -164,13 +242,16 @@ class Predictor:
         print(f"f1 score:  {f1:.4f}")
         print(f"accuracy:  {acc:.4f}")
 
-    def _balanced_split(self, how_many: int):
+    def _balanced_split(self, how_many: int, categories: bool):
+        uniq_vals = 6 if categories else 2
+        targets   = self._target_categories if categories else self._target_groups
+
         splitter = {
             i: defaultdict(list)
-            for i in range(6)  # categories
+            for i in range(uniq_vals)  # categories
         }
 
-        zipped = list(zip(self._data, self._targets))
+        zipped = list(zip(self._data, targets))
         random.shuffle(zipped)  # inplace
 
         # self._target must be converted to numeric
@@ -182,8 +263,17 @@ class Predictor:
                 splitter[t]["X_train"].append(d)
                 splitter[t]["y_train"].append(t)
         
-        self.X_train = np.array(reduce([splitter[i]["X_train"] for i in range(6)]))
-        self.y_train = reduce([splitter[i]["y_train"] for i in range(6)])
-        self.X_test  = np.array(reduce([splitter[i]["X_test"] for i in range(6)]))
-        self.y_test  = reduce([splitter[i]["y_test"] for i in range(6)])
+        # is there a way to make a dynamic variable's name?
+        # like: self.X_train_(eval(f"{'categories' if categories else 'groups'}")) xd
+        if categories:
+            self.X_train_categories = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_categories  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_categories = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_categories  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+        else:
+            self.X_train_groups = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+
         

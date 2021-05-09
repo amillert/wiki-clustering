@@ -10,6 +10,7 @@ from handle_wiki.extraction import executeJob
 from prediction.run import Predictor
 from utils import queriesObject2Category
 from utils.argparser import args
+from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
 
 
 if __name__ == "__main__":
@@ -33,16 +34,14 @@ if __name__ == "__main__":
 
         fg = FeaturesGenerator(df, schema)
         fg.mutate()  # gets features in-place
+        conversion_dics = fg.get_conversion_targets_dics()
         num_sub_df = fg.toggle_df_representation()[["content", "group", "category"]]
 
-        predictor = Predictor(df, num_sub_df, args)
+        predictor = Predictor(df, num_sub_df, conversion_dics, args)
         predictor.cluster_all()
         clustering_res = predictor.get_clustering_results()
+        cluster_visualize(clustering_res)
 
         predictor.classify_all()
         classification_res = predictor.get_classification_results()
-        print()
-
-        # TODO(nami) Do visualization
-        if args.visualize:
-            pass
+        classify_visualize(classification_res, [])

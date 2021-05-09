@@ -71,7 +71,6 @@ class FeaturesGenerator:
         self._group2idx    = dict()
         self._idx2group    = dict()
 
-
     def get_df(self) -> pd.DataFrame:
         self._is_df_numeric = not self._is_df_numeric  # toggle flag
 

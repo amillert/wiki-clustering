@@ -33,11 +33,15 @@ if __name__ == "__main__":
 
         fg = FeaturesGenerator(df, schema)
         fg.mutate()  # gets features in-place
-        targets = fg.toggle_df_representation().category.values
+        num_sub_df = fg.toggle_df_representation()[["content", "group", "category"]]
 
-        predictor = Predictor(df, targets, args)
-        predictor.cluster()
-        predictor.classify()
+        predictor = Predictor(df, num_sub_df, args)
+        predictor.cluster_all()
+        clustering_res = predictor.get_clustering_results()
+
+        predictor.classify_all()
+        classification_res = predictor.get_classification_results()
+        print()
 
         # TODO(nami) Do visualization
         if args.visualize:

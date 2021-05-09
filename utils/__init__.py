@@ -1,3 +1,7 @@
+"""
+    Contains a SPARQL query to collect people belonging different 6 categories from Wikipedia.
+"""
+
 from collections import namedtuple
 
 

@@ -11,7 +11,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import wptools
 
 
-def getItemsRefs(qid: str) -> list:
+def getItemsRefs(o: str) -> list:
     """Function to return reference links. 
 
     Args:
@@ -56,6 +56,7 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
         except:
             traceback.print_exc()
             print(f"Can't obtain content for entry: {title}")
+            # pass
             continue 
         else:
             sentences = nltk.sent_tokenize(content)

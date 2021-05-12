@@ -38,7 +38,7 @@ def cluster_visualize(data: dict) -> None:
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
         ax.set_ylabel("Scores")
-        ax.set_ylim(top=1)
+        ax.set_ylim(top=0.5)
         ax.set_title(f"{metric} scores by ways of representing text and number of clusters")
         ax.set_xticks(x_pos)
         ax.set_xticklabels(labels)
@@ -51,7 +51,7 @@ def cluster_visualize(data: dict) -> None:
 
     plt.show()
 
-def classify_visualize(accs: dict, labels: list) -> None:
+def classify_visualize(accs: dict) -> None:
     colors = iter(["green", "red"])
 
     for classification_type, res in accs.items():

@@ -15,8 +15,7 @@ from torch.utils.data import DataLoader
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
-
-from utils.funs import reduce, reduce_tensors
+from utils.funs import flatten, flatten_tensors
 from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
 
 
@@ -330,7 +329,7 @@ class Predictor:
             self.y_train_categories = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
             self.y_test_categories  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
         else:
-            self.X_train_groups = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
-            self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
-            self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
-            self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+            self.X_train_groups = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_groups  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_groups = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_groups  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])

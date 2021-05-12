@@ -15,8 +15,10 @@ from torch.utils.data import DataLoader
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
+
 from utils.funs import reduce, reduce_tensors
 from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
+
 
 
 class Predictor:
@@ -136,7 +138,6 @@ class Predictor:
         self.classify(categories=True)
 
     def classify(self, categories: bool) -> None:
-        # TODO(amillert): 3. Lower eta each few epochs
         self._training(categories)
         self._testing(categories)
 
@@ -151,8 +152,8 @@ class Predictor:
             return merged
 
         return {
-            "2cluster": merge_metrics(self._cluster_res[:3]),
-            "6cluster": merge_metrics(self._cluster_res[3:])
+            "2cluster": merge_metrics(self._cluster_res[:3]), # first three (token, token frequency, tf-idf) belong to group evaluation
+            "6cluster": merge_metrics(self._cluster_res[3:]) # rest belong to category evaluation
         }
 
     def get_classification_results(self):
@@ -200,10 +201,6 @@ class Predictor:
                 y_pred.append(torch.argmax(output, dim=1))
                 y_gold.append(y)
 
-                # if not batch_count % 10:
-                #     print(f"Batch number {batch_count}, avg loss: {loss_total / batch_count:.4f}")
-
-            # prints will probably be removed once all visualizations work
             print("—"*100)
             print(f"Epoch: {epoch} out of {self._epochs}")
             print(f"Mean loss:  {loss_total / self._num_batches:.4f}")
@@ -254,8 +251,8 @@ class Predictor:
 
     def _evaluate(self, y_gold: list, y_pred: list, is_train: bool=True) -> None:
         # check if list of tensors
-        golds = reduce_tensors(y_gold) if is_train else y_gold.tolist()
-        preds = reduce_tensors(y_pred) if is_train else y_pred.tolist()
+        golds = flatten_tensors(y_gold) if is_train else y_gold.tolist()
+        preds = flatten_tensors(y_pred) if is_train else y_pred.tolist()
 
         prec, rec, f1, _ = metrics.precision_recall_fscore_support(
             golds,
@@ -280,7 +277,7 @@ class Predictor:
                 # ppf -> pred_positions_per_fold
                 gpf = self._groupby(fold, golds)
                 ppf = self._groupby(fold, preds)
-
+              
                 acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
                 self._classify_res.append((convert[fold], acc))
           
@@ -302,6 +299,12 @@ class Predictor:
         )
 
     def _balanced_split(self, how_many: int, categories: bool):
+        """Split data.
+
+        Args:
+            how_many (int): Number of test data to have.
+            categories (bool): True if 6 categories else 2 groups.
+        """
         uniq_vals = 6 if categories else 2
         targets   = self._target_categories if categories else self._target_groups
 
@@ -321,13 +324,11 @@ class Predictor:
                 splitter[t]["X_train"].append(d)
                 splitter[t]["y_train"].append(t)
         
-        # is there a way to make a dynamic variable's name?
-        # like: self.X_train_(eval(f"{'categories' if categories else 'groups'}")) xd
         if categories:
-            self.X_train_categories = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
-            self.X_test_categories  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
-            self.y_train_categories = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
-            self.y_test_categories  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+            self.X_train_categories = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_categories  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_categories = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_categories  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
         else:
             self.X_train_groups = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
             self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))

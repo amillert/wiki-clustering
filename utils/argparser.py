@@ -55,7 +55,7 @@ corpus_subparser.add_argument(
 
 prediction_subparser = subparsers.add_parser(
     "prediction",
-    help="Subparser for visualization."
+    help="Subparser for clustering/classification."
 )
 
 prediction_subparser.add_argument(
@@ -118,14 +118,6 @@ prediction_subparser.add_argument(
     type=int,
     help="Provide the amount of hidden units",
     required=True,
-)
-
-prediction_subparser.add_argument(
-    "-v",
-    "--visualize",
-    action="store_true",
-    help="If flag set - visualize results",
-    default=True
 )
 
 args = argument_parser.parse_args()

@@ -135,7 +135,13 @@ class FeaturesGenerator:
             self._df[f"{feature}_{suffix}"] = self._df[feature].apply(
                 nltk.pos_tag)
 
-    def _filter_pos_and_lemmatize(self, suffix: str, tag_rules: list) -> None:
+    def _filter_pos_and_lemmatize(self, suffix: str, tag_rules: dict) -> None:
+        """Filter by specific POS, then lemmatize the token.
+
+        Args:
+            suffix (str): suffix used in column to contain POS.
+            tag_rules (dict): maps certain Universal POS to Penn Treebanks POS.
+        """
         for feature in self._list_features:
             col_in = f"{feature}_{suffix}"
             for pos, (rule, lemma) in tag_rules.items():

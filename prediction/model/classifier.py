@@ -1,3 +1,7 @@
+"""
+Class for classification model. 
+"""
+
 import torch
 
 
@@ -15,12 +19,4 @@ class LogisticRegressor(torch.nn.Module):
         out           = self.out(hidden)
         activated_out = self.activation(out)
 
-        # print(self.hidden)
-        # print(hidden.shape)
-        # print(self.out)
-        # print(out.shape)
-        # print(self.activation)
-        # print(activated_out.shape)
-
-        # return torch.argmax(activated_out, dim=1).type(torch.float32)
         return activated_out

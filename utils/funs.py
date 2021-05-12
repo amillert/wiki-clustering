@@ -11,10 +11,7 @@ def flatten_tensors(xs: list) -> list:
     return list(functools.reduce(lambda x, y: x + y, map(lambda l: l.tolist(), xs)))
 
 def flatten(xs: list) -> list:
-<<<<<<< Updated upstream
     """"
     Flattening list of lists to list.
     """
-=======
->>>>>>> Stashed changes
     return list(functools.reduce(lambda x, y: x + y, xs))

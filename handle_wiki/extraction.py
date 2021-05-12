@@ -1,8 +1,11 @@
+"""
+    Functions to perform SPARQL query.
+"""
+
 from utils import wiki_endpoint, baseQuery, DataRow
 from utils.argparser import args
 
 import nltk
-import threading
 import traceback
 from SPARQLWrapper import SPARQLWrapper, JSON
 import wptools
@@ -17,7 +20,7 @@ def getItemsRefs(qid: str) -> list:
     Returns:
         list: References of qid containing Q-number (unique identifier for data in Wikidata).
     """
-    sparql = SPARQLWrapper(wiki_endpoint, returnFormat=JSON)
+    sparql = SPARQLWrapper(wiki_endpoint, returnFormat=JSON, agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11")
     sparql.setQuery(baseQuery.format(qid))
 
     queryResults = sparql.query().convert()["results"]["bindings"]
@@ -83,17 +86,9 @@ def executeJob(occupationCategory: tuple) -> list:
     Returns:
         list: Results of SPARQL query. 
     """
-    # TODO(amillert): optional splitIntoBatches
-    # for now not so important cause I have 12 cores
-
     occupationObject, (category, group) = occupationCategory
 
     occupationRefs = getItemsRefs(occupationObject)
     rawDataPoints = extractDataPerOccupation(occupationRefs, category, group)
 
     return rawDataPoints
-
-def splitIntoBatches(queriesObjects):
-    # import os
-    # cpus = os.cpu_count()
-    pass

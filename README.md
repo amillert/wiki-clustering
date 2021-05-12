@@ -2,13 +2,13 @@
 
 ## General overview
 The project constitutes of two main subprojects (reflected in terms of subparsers in the argument parser), namely:
-1. Corpus extraction and preprocessing,
-2. Clustering, Classification; evaluation of the models and visualizations.
+1. Extract Corpus and perform preprocessing,
+2. Perform Clustering and Classification on collected data; then evaluation of those models and visualizations.
 
 ### Corpus
 Corpus has been extracted from wikidata using sparql. The respective queries provide links to 6 groups of interest - painters, writers, singers, politicians, architects, mathematicians wchich constitute 2 bigger clusters - 3 former - artists, 3 latter - non-artists.
 
-Since wptools, along with the validation of description length to match desired, takes a while to query and process wikipedia data; our scipt allows saving the data after the extraction. This allows one create, for instance, several different corpora to later investigate which parameters yield better results, or simply to extract data once and not have to worry about it ever again.
+Since `wptools`, along with the validation of description length to match desired, takes a while to query and process wikipedia data; our scipt allows saving the data after the extraction. This allows one create, for instance, several different corpora to later investigate which parameters yield better results, or simply to extract data once and not have to worry about it ever again.
 
 Initially, even before saving, data is normalized by tokenizing the data, lowercasing all tokens, and filtering meaningless wordforms (function words) not to polute the data. Since our goal doesn't regard understanding the structure of the data, leaving those tokens out in the corpus would only complicate the learning process. Additionally, we remove all the punctuation.
 
@@ -48,8 +48,15 @@ $ conda deactivate
 ```
 
 ### Using the project
-As mentioned before, the general project constitutes two subprojects - `corpus`, and `prediction`. The distinction between the two, and their respective arguments, are reflected in the `utils/argparser.py` file. In a nutshell, `corpus` subparser parses the following arguments: `--num_entires` to specify how many persons to extract per category; `--sentences_per_article` to specify how many sentences to parse per each entry, if there are not enough sentences entry is being discarted; `--parallel` to run extraction in parallel (unfortunatelly script is limited in terms of ability to be parallelized simply by the fact that we need to extract `--num_entires` per category, hence parallelization can only occur per category group, namely it's degree is at most 6 in the most busy time of processing when all categories are still being extracted); `--path_corpus_out` allows one provide the path in the local file system in which extracted corpora are being stored; the corpus `pd.DataFrame` is being stored along with the schema for loading data in the correct format; when `--path_corpus_out` arguement is composed with the `--load_data` flag, it serves as a path to the directory storing all corpora to load it back into the script. In case of loading the dataset, if `--path_corpus_out` is the exact path to specific `*.tsv` file corresponding the  `pd.DataFrame` of one's interest - this exact file with respective schema are being loaded; however, if it denotes just a directory with different corpora, then it loads the corpus with the highest suffix number. In order to preserve compatibility in terms of functionality, when `--path_corpus_out` is used to to save the model, script will automatically generate the path name by increasing the suffix value. The exact name is of form `corpus_{n}.tsv`, where n denotes which corpus it is in the sequence of their generation.
+As mentioned before, the general project constitutes two subprojects - `corpus`, and `prediction`. The distinction between the two, and their respective arguments, are reflected in the `utils/argparser.py` file. In a nutshell, `corpus` subparser parses the following arguments: `--num_entires` to specify how many persons to extract per category; `--sentences_per_article` to specify how many sentences to parse per each entry, if there are not enough sentences in a entry then it is being discarted; `--parallel` to run extraction in parallel (unfortunatelly script is limited in terms of ability to be parallelized simply by the fact that we need to extract `--num_entires` per category, hence parallelization can only occur per category group, namely it's degree is at most 6 in the most busy time of processing when all categories are still being extracted); `--path_corpus_out` allows one to provide the path in the local file system in which extracted corpora will be stored; the corpus `pd.DataFrame` is being stored along with the schema for loading data in the correct format; when `--path_corpus_out` arguement is composed with the `--load_data` flag, it serves as a path to the directory storing all corpora to load it back into the script. In case of loading the dataset, if `--path_corpus_out` is the exact path to specific `*.tsv` file corresponding the  `pd.DataFrame` of one's interest - this exact file with respective schema are being loaded; however, if it denotes just a directory with different corpora, then it loads the corpus with the highest suffix number. In order to preserve compatibility in terms of functionality, when `--path_corpus_out` is used to to save the model, script will automatically generate the path name by increasing the suffix value. The exact name is of form `corpus_{n}.tsv`, where `n` denotes which corpus it is in the sequence of their generation.
 
 `prediction` subparser to be defined soon - once implemented.
 
 ### Exemplar scenarios of running the script
+
+
+### Exercises Index 
+- Exercise 1-1
+    The SPARQL query used to get the names for 6 categories can be found in `utils/__init__.py`.
+
+- Exercise 1-2

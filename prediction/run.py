@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
-from utils.funs import reduce, reduce_tensors
+from utils.funs import flatten, flatten_tensors
 
 
 class Predictor:
@@ -135,14 +135,13 @@ class Predictor:
         self.classify(categories=True)
 
     def classify(self, categories: bool) -> None:
-        # TODO(amillert): 3. Lower eta each few epochs
         self._training(categories)
         self._testing(categories)
 
     def get_clustering_results(self):
         return {
-            "2cluster": self._cluster_res[:3],
-            "6cluster": self._cluster_res[3:]
+            "2cluster": self._cluster_res[:3], # first three (token, token frequency, tf-idf) belong to group evaluation
+            "6cluster": self._cluster_res[3:] # rest belong to category evaluation
         }
 
     def get_classification_results(self):
@@ -190,10 +189,6 @@ class Predictor:
                 y_pred.append(torch.argmax(output, dim=1))
                 y_gold.append(y)
 
-                # if not batch_count % 10:
-                #     print(f"Batch number {batch_count}, avg loss: {loss_total / batch_count:.4f}")
-
-            # prints will probably be removed once all visualizations work
             print("—"*100)
             print(f"Epoch: {epoch} out of {self._epochs}")
             print(f"Mean loss:  {loss_total / self._num_batches:.4f}")
@@ -244,8 +239,8 @@ class Predictor:
 
     def _evaluate(self, y_gold: list, y_pred: list, is_train: bool=True) -> None:
         # check if list of tensors
-        golds = reduce_tensors(y_gold) if is_train else y_gold.tolist()
-        preds = reduce_tensors(y_pred) if is_train else y_pred.tolist()
+        golds = flatten_tensors(y_gold) if is_train else y_gold.tolist()
+        preds = flatten_tensors(y_pred) if is_train else y_pred.tolist()
 
         prec, rec, f1, _ = metrics.precision_recall_fscore_support(
             golds,
@@ -270,9 +265,10 @@ class Predictor:
                 gpf = self._groupby(fold, golds)
                 ppf = self._groupby(fold, preds)
 
-                acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
+                acc = len(gpf & ppf) / len(gpf)  # accuracy
                 self._classify_res.append((fold, acc))
           
+        # plot confusion matrix
         cm = metrics.confusion_matrix(golds, preds)
         cnt_unique = len(set(y_gold))  # y_gold for sure not golds?
         plt.figure(figsize=(cnt_unique, cnt_unique))
@@ -301,6 +297,12 @@ class Predictor:
 
 
     def _balanced_split(self, how_many: int, categories: bool):
+        """Split data.
+
+        Args:
+            how_many (int): Number of test data to have.
+            categories (bool): True if 6 categories else 2 groups.
+        """
         uniq_vals = 6 if categories else 2
         targets   = self._target_categories if categories else self._target_groups
 
@@ -320,18 +322,16 @@ class Predictor:
                 splitter[t]["X_train"].append(d)
                 splitter[t]["y_train"].append(t)
         
-        # is there a way to make a dynamic variable's name?
-        # like: self.X_train_(eval(f"{'categories' if categories else 'groups'}")) xd
         if categories:
-            self.X_train_categories = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
-            self.X_test_categories  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
-            self.y_train_categories = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
-            self.y_test_categories  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+            self.X_train_categories = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_categories  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_categories = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_categories  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
         else:
-            self.X_train_groups = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
-            self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
-            self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
-            self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])
+            self.X_train_groups = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_groups  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_groups = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_groups  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
         
     
 def cluster_visualize(data :dict, labels :list):
@@ -339,20 +339,18 @@ def cluster_visualize(data :dict, labels :list):
 
     Args:
         data (dict): Coniatins result of evaluation scores.
-        labels (list(str)): Ways of representing text.
+                     e.g.: {"2clusters" : {"silhouette" : [12, 13, 14], "homogeneity": [12,13,14]},
+                            "6clusters" : {"silhouette" : [15, 16, 17], "homogeneity": [15,16,17]}}
+        labels (list): Ways of representing text. e.g.: ["Token", "tfidf", "token freq"]
     """
-    labels = ["Token", "tfidf", "token freq"]
-    data = {"2cluster" : {"silhouette" : [12, 13, 14], "homogeneity": [12,13,14]},
-    "6cluster" : {"silhouette" : [15, 16, 17], "homogeneity": [15,16,17]},
-    }
 
-    x_pos =  np.arange(len(labels)) 
+    x_pos =  np.arange(len(labels)) # positions of labels
     width = 0.35  # the width of the bars
 
-    for key in data["2cluster"].keys():
+    for key in data["2clusters"].keys():
         fig, ax = plt.subplots()
-        rects1 = ax.bar(x_pos - width/2, data["2cluster"][key], width, label='2-clusters')
-        rects2 = ax.bar(x_pos + width/2, data["6cluster"][key], width, label='6-clusters')
+        rects1 = ax.bar(x_pos - width/2, data["2clusters"][key], width, label='2-clusters')
+        rects2 = ax.bar(x_pos + width/2, data["6clusters"][key], width, label='6-clusters')
 
         # Add some text for labels, title and custom x-axis tick labels, etc.
         ax.set_ylabel('Scores')
@@ -370,8 +368,12 @@ def cluster_visualize(data :dict, labels :list):
     plt.show()
 
 def classify_visualize(accs : list, labels : list):
-    accs = [0.98, 0.22]
-    labels = ["artists","non artists"] # or ["politicial", etc...]
+    """Visualization of classification accuracy.
+
+    Args:
+        accs (list): accuracies. e.g.: [0.98, 0.88]
+        labels (list): text labels. e.g.: ["artists", "non artists"]
+    """
 
     x_pos = np.arange(len(labels)) 
 

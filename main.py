@@ -43,6 +43,3 @@ if __name__ == "__main__":
         classification_res = predictor.get_classification_results()
         print()
 
-        # TODO(nami) Do visualization
-        if args.visualize:
-            pass

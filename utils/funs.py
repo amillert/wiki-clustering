@@ -1,9 +1,17 @@
+"""
+Utility functions for classification/clustering
+"""
+
 import functools
 
-
-# TODO(amillert): Can they be generalized?
-def reduce_tensors(xs: list) -> list:
+def flatten_tensors(xs: list) -> list:
+    """
+    Flattening list of tensors to list.
+    """
     return list(functools.reduce(lambda x, y: x + y, map(lambda l: l.tolist(), xs)))
 
-def reduce(xs: list) -> list:
+def flatten(xs: list) -> list:
+    """"
+    Flattening list of lists to list.
+    """
     return list(functools.reduce(lambda x, y: x + y, xs))

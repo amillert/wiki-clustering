@@ -119,6 +119,9 @@ class FeaturesGenerator:
         self._is_df_numeric = not self._is_df_numeric
         return self._converted_df
 
+    def get_conversion_targets_dics(self) -> tuple:
+        return self._idx2category, self._idx2group    
+
     def _preserve_alphas(self) -> None:
         for feature in self._list_features:
             self._df[feature] = self._df[feature].apply(self._is_alpha)

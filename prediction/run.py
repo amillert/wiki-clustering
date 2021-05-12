@@ -2,10 +2,8 @@ from collections import defaultdict, namedtuple
 import os
 import random
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from scipy.sparse import hstack, coo_matrix
 from sklearn import metrics
 from sklearn.cluster import KMeans
@@ -17,11 +15,14 @@ from torch.utils.data import DataLoader
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
-from utils.funs import flatten, flatten_tensors
+
+from utils.funs import reduce, reduce_tensors
+from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
+
 
 
 class Predictor:
-    def __init__(self, df: pd.DataFrame, targets: pd.DataFrame, args: list):
+    def __init__(self, df: pd.DataFrame, targets: pd.DataFrame, conversion_dics: tuple, args: list):
         """Class contains classifier and cluster
 
         Args:
@@ -31,6 +32,7 @@ class Predictor:
         """
         # clustering
         self._df             = df  # one from cluster
+        self._idx2category, self._idx2group = conversion_dics
         self._num_clusters   = args.num_clusters
         self._features_cols  =  list(
             filter(
@@ -122,7 +124,8 @@ class Predictor:
             ])
 
             self._cluster_res.append(
-                ClusterMetrics( homogeneity,
+                ClusterMetrics(
+                    homogeneity,
                     completeness,
                     vMeasure,
                     adjustedRandIndex,
@@ -139,22 +142,31 @@ class Predictor:
         self._testing(categories)
 
     def get_clustering_results(self):
+        def merge_metrics(xs):
+            merged = defaultdict(list)
+
+            for d in map(lambda l: l._asdict(), xs):
+                for k, v in d.items():
+                    merged[k].append(v)
+
+            return merged
+
         return {
-            "2cluster": self._cluster_res[:3], # first three (token, token frequency, tf-idf) belong to group evaluation
-            "6cluster": self._cluster_res[3:] # rest belong to category evaluation
+            "2cluster": merge_metrics(self._cluster_res[:3]), # first three (token, token frequency, tf-idf) belong to group evaluation
+            "6cluster": merge_metrics(self._cluster_res[3:]) # rest belong to category evaluation
         }
 
     def get_classification_results(self):
         return {
-            "groups": self._classify_res[:2],  # first two belong to group evaluation
-            "categories": self._classify_res[2:]  # next six belong to category evaluation
+            "Group": self._classify_res[:2],  # first two belong to group evaluation
+            "Category": self._classify_res[2:]  # next six belong to category evaluation
         }
 
     def _training(self, categories: bool):
         model     = self.model_categories if categories else self.model_groups
         criterion = self.criterion_categories if categories else self.criterion_groups
         optimizer = self.optimizer_categories if categories else self.optimizer_groups
-        X_y_pair = (
+        X_y_pair  = (
             (self.X_train_categories, self.y_train_categories) if categories
             else (self.X_train_groups, self.y_train_groups)
         )
@@ -167,7 +179,7 @@ class Predictor:
             num_workers=os.cpu_count()
         )
 
-        print(f"Model training for {'categories' if categories else 'groups'}")
+        print(f"Model training for {'Category' if categories else 'Group'}")
 
         for epoch in range(1, self._epochs + 1):
             loss_total = 0.0
@@ -214,7 +226,7 @@ class Predictor:
 
         y_pred = torch.argmax(model(X), dim=1)
 
-        print(f"Evaluation of the model for {'categories' if categories else 'groups'} in testing")
+        print(f"Evaluation of the model for {'Category' if categories else 'Group'} in testing")
         self._evaluate(y, y_pred, False)
         print("—"*100)
 
@@ -250,35 +262,26 @@ class Predictor:
         )
         acc = metrics.accuracy_score(golds, preds)
 
-        if not is_train:
-            print("Macro averaging")
-            print(f"precision: {prec:.4f}")
-            print(f"recall:    {rec:.4f}")
-            print(f"f1 score:  {f1:.4f}")
-            print(f"accuracy:  {acc:.4f}")
+        print()
+        print("Macro averaging")
+        print(f"precision: {prec:.4f}")
+        print(f"recall:    {rec:.4f}")
+        print(f"f1 score:  {f1:.4f}")
+        print(f"accuracy:  {acc:.4f}")
         
         if not is_train:
             folds = set(golds)
+            convert = self._idx2category if len(folds) == 6 else self._idx2group
             for fold in folds:
                 # gpf -> gold_positions_per_fold
                 # ppf -> pred_positions_per_fold
                 gpf = self._groupby(fold, golds)
                 ppf = self._groupby(fold, preds)
-
-                acc = len(gpf & ppf) / len(gpf)  # accuracy
-                self._classify_res.append((fold, acc))
+              
+                acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
+                self._classify_res.append((convert[fold], acc))
           
-        # plot confusion matrix
-        cm = metrics.confusion_matrix(golds, preds)
-        cnt_unique = len(set(y_gold))  # y_gold for sure not golds?
-        plt.figure(figsize=(cnt_unique, cnt_unique))
-        sns.heatmap(cm, annot=True, fmt=".3f", linewidths=.5, square=True, cmap='Blues_r')
-        plt.ylabel('Actual group')
-        plt.xlabel('Predicted group')
-        all_sample_title = 'Confusion Matrix'
-        plt.title(all_sample_title, size=15)
-
-        plt.show()
+            visualize_confussion_matrix(golds, preds)
 
     @staticmethod
     def _groupby(fold: int, xs: list) -> set:
@@ -294,7 +297,6 @@ class Predictor:
                 )
             )
         )
-
 
     def _balanced_split(self, how_many: int, categories: bool):
         """Split data.
@@ -328,58 +330,7 @@ class Predictor:
             self.y_train_categories = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
             self.y_test_categories  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
         else:
-            self.X_train_groups = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
-            self.X_test_groups  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
-            self.y_train_groups = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
-            self.y_test_groups  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
-        
-    
-def cluster_visualize(data :dict, labels :list):
-    """Visualization of evaluation methods among different number of clusters.
-
-    Args:
-        data (dict): Coniatins result of evaluation scores.
-                     e.g.: {"2clusters" : {"silhouette" : [12, 13, 14], "homogeneity": [12,13,14]},
-                            "6clusters" : {"silhouette" : [15, 16, 17], "homogeneity": [15,16,17]}}
-        labels (list): Ways of representing text. e.g.: ["Token", "tfidf", "token freq"]
-    """
-
-    x_pos =  np.arange(len(labels)) # positions of labels
-    width = 0.35  # the width of the bars
-
-    for key in data["2clusters"].keys():
-        fig, ax = plt.subplots()
-        rects1 = ax.bar(x_pos - width/2, data["2clusters"][key], width, label='2-clusters')
-        rects2 = ax.bar(x_pos + width/2, data["6clusters"][key], width, label='6-clusters')
-
-        # Add some text for labels, title and custom x-axis tick labels, etc.
-        ax.set_ylabel('Scores')
-        ax.set_ylim(top=20)
-        ax.set_title(f'{key} scores by ways of representing text and number of clusters')
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(labels)
-        ax.legend()
-
-        ax.bar_label(rects1, padding=3)
-        ax.bar_label(rects2, padding=3)
-
-        fig.tight_layout()
-
-    plt.show()
-
-def classify_visualize(accs : list, labels : list):
-    """Visualization of classification accuracy.
-
-    Args:
-        accs (list): accuracies. e.g.: [0.98, 0.88]
-        labels (list): text labels. e.g.: ["artists", "non artists"]
-    """
-
-    x_pos = np.arange(len(labels)) 
-
-    plt.bar(x_pos, accs, color='green')
-    plt.ylabel('Accuracy scores')
-    plt.xlabel('Group')
-    plt.title('Accuracy by group')
-    plt.xticks(x_pos, labels)
-    plt.show()
+            self.X_train_groups = np.array(reduce([splitter[i]["X_train"] for i in range(uniq_vals)]))
+            self.X_test_groups  = np.array(reduce([splitter[i]["X_test"] for i in range(uniq_vals)]))
+            self.y_train_groups = reduce([splitter[i]["y_train"] for i in range(uniq_vals)])
+            self.y_test_groups  = reduce([splitter[i]["y_test"] for i in range(uniq_vals)])

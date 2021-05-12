@@ -11,7 +11,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import wptools
 
 
-def getItemsRefs(o: str) -> list:
+def getItemsRefs(qid: str) -> list:
     """Function to return reference links. 
 
     Args:

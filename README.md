@@ -136,6 +136,19 @@ Which are shortly followed by the juxtaposition of averaged accuracies obtained 
 
 ### Exercises Index 
 - Exercise 1-1
-    The SPARQL query used to get the names for 6 categories can be found in `utils/__init__.py`.
+    The SPARQL's queries used to automatically retrieve the names for 6 categories can be found under: `utils/__init__.py`.
 
-- Exercise 1-2
+- Exercise 1-2, 1-3
+    The logic behind extracting entries from `Wikidata` and then initial text normalization can be found under: `handle-wiki/extraction.py`.
+
+- Exercise 2
+    The core data preprocessing can be found under: `corpus/preprocessing.py`; however the structure of the data is specified in `utils/__init__.py`.
+
+- Exercise 3
+    Clustering process can be found under: `prediction/run.py`, visualization is located in: `utils/visualization.py`.
+
+- Exercise 4
+    Classification process can be found under: `prediction/run.py`, visualization is located in: `utils/visualization.py`.
+
+- Corpus
+    Expected corpus extracted for 30 persons per category with 10 sentences of content each can be found under `data/raw-corpus/corpus_0.tsv`. Using this file (and schema belonging to it), one can simply proceed with the clustering & classification process.

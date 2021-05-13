@@ -65,7 +65,7 @@ As mentioned before, the main project constitutes two subprojects - `corpus`, an
 Nota bene:
 1. If there are not enough sentences per entry, it will be discarded.
 2. The level of parallelization (without enforcing some messaging mechanism between actors) is limited by the fact that we need to extract `--num_entires` per category. Additionally we don't have a set of persons at our disposition beforehand since it's being extracted at the runtime as well so we can't create a pool of threads which continuously take new jobs after they're done with executing a small subtask. Because of all that, we decided to parallelize the job of extracting, filtering, collecting, and processing simply per each category. So in the busiest time of execution, there are only 6 processes running asynchronously.
-3. The corpus is being stored as a `*.tsv` file along with the corresponding schema allowing to load data in the correct format (list object cannot be pickled). The output path should be provided as a directory; behaviour of providing a path is not tested.
+3. The corpus is being stored as a `*.tsv` file along with the corresponding schema allowing to load data in the correct format (list object cannot be pickled). The output path should be provided as a directory; behaviour of providing a path is not fully tested; the data should at least be in the correct format: `corpus_<NUMBER>.tsv`.
 
 #### Clustering / classification subparser
 | Id |    Full parameter   | Alternative |                            Functionality                            |

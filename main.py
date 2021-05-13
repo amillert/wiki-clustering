@@ -44,6 +44,4 @@ if __name__ == "__main__":
 
         predictor.classify_all()
         classification_res = predictor.get_classification_results()
-
-        classify_visualize(classification_res, [])
-        print()
+        classify_visualize(classification_res)

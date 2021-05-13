@@ -10,7 +10,7 @@ from handle_wiki.extraction import executeJob
 from prediction.run import Predictor
 from utils import queriesObject2Category
 from utils.argparser import args
-from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
+from utils.visualization import cluster_visualize, classify_visualize
 
 
 if __name__ == "__main__":

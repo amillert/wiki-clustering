@@ -49,7 +49,7 @@ corpus_subparser.add_argument(
     "-s",
     "--save_path",
     action="store",
-    help="Path to save raw extracted corpus to",
+    help="Path to a directory to save raw extracted corpus to",
     required=True,
 )
 

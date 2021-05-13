@@ -22,8 +22,10 @@ class Persistable:
             self._corpus_path = os.path.join(self.pardir, f"corpus_{self._suffix}.tsv")
         else:
             # TODO(amillert) test if works
-            self._suffix = self._get_suffix(os.path.dirname(self.pardir))
+            # self._suffix = self._get_suffix(os.path.dirname(self.pardir))
             self._corpus_path = self.pardir
+            self.pardir = "/".join(self.pardir.split("/")[:-1])
+            self._suffix = self._corpus_path.split("/")[-1].split(".")[0].split("_")[1]
 
         self._schema_path = os.path.join(self.pardir, f"schema_{self._suffix}.json")
 

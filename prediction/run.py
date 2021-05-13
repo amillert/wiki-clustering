@@ -16,8 +16,7 @@ from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
 from utils.funs import flatten, flatten_tensors
-from utils.visualization import visualize_confussion_matrix, cluster_visualize, classify_visualize
-
+from utils.visualization import visualize_confussion_matrix
 
 
 class Predictor:
@@ -30,7 +29,7 @@ class Predictor:
             args (namedtuple):
         """
         # clustering
-        self._df             = df  # one from cluster
+        self._df             = self._drop_empty(df)  # one from cluster
         self._idx2category, self._idx2group = conversion_dics
         self._num_clusters   = args.num_clusters
         self._features_cols  =  list(
@@ -103,7 +102,7 @@ class Predictor:
         kmeans1 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
         kmeans2 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
         kmeans3 = KMeans(n_clusters=clusters, random_state=7, max_iter=300, init="k-means++")
-        
+
         cluster_res_all = [
             kmeans1.fit(self._tokens),
             kmeans2.fit(self._token_freqs),
@@ -246,6 +245,7 @@ class Predictor:
             # TODO(amillert): Preferably fix it so there's no need for " ".join
             self._vectorize(self._df[col].apply(" ".join), idf=True)
             for col in self._features_cols
+            # if list(filter(lambda l: l, self._df[col].tolist()))
         ]
 
     def _evaluate(self, y_gold: list, y_pred: list, is_train: bool=True) -> None:
@@ -267,7 +267,7 @@ class Predictor:
         print(f"recall:    {rec:.4f}")
         print(f"f1 score:  {f1:.4f}")
         print(f"accuracy:  {acc:.4f}")
-        
+
         if not is_train:
             folds = set(golds)
             convert = self._idx2category if len(folds) == 6 else self._idx2group
@@ -276,10 +276,10 @@ class Predictor:
                 # ppf -> pred_positions_per_fold
                 gpf = self._groupby(fold, golds)
                 ppf = self._groupby(fold, preds)
-              
+
                 acc = len(gpf & ppf) / len(gpf)  # accuracy or recall...?
                 self._classify_res.append((convert[fold], acc))
-          
+
             visualize_confussion_matrix(golds, preds)
 
     @staticmethod
@@ -322,7 +322,7 @@ class Predictor:
             else:
                 splitter[t]["X_train"].append(d)
                 splitter[t]["y_train"].append(t)
-        
+
         if categories:
             self.X_train_categories = np.array(flatten([splitter[i]["X_train"] for i in range(uniq_vals)]))
             self.X_test_categories  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
@@ -333,3 +333,8 @@ class Predictor:
             self.X_test_groups  = np.array(flatten([splitter[i]["X_test"] for i in range(uniq_vals)]))
             self.y_train_groups = flatten([splitter[i]["y_train"] for i in range(uniq_vals)])
             self.y_test_groups  = flatten([splitter[i]["y_test"] for i in range(uniq_vals)])
+
+    def _drop_empty(self, df: pd.DataFrame) -> pd.DataFrame:
+        cols_to_drop = [col for col in df.columns if list(filter(lambda l: not l, df[col].tolist()))]
+
+        return df.drop(cols_to_drop, axis=1, inplace=False)

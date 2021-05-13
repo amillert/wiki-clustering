@@ -12,7 +12,7 @@ import wptools
 
 
 def getItemsRefs(qid: str) -> list:
-    """Function to return reference links. 
+    """Function to return reference links.
 
     Args:
         qid (str): Representing unique identifiers for occupation in Wikidata.
@@ -29,7 +29,7 @@ def getItemsRefs(qid: str) -> list:
 
 
 def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
-    """Function to query Wikidata to collect necessary information for the corpus. 
+    """Function to query Wikidata to collect necessary information for the corpus.
 
     Args:
         refs (list): Contains reference links of all listed person for a particular category in Wikidata.
@@ -45,7 +45,7 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
 
     for ref in refs:
         if personCounter >= args.num_entires: break
-        
+
         try:
             page = wptools.page(wikibase=ref.split("/")[-1])
             page.get_wikidata()
@@ -55,9 +55,8 @@ def extractDataPerOccupation(refs: list, category: str, group: str) -> list:
             content = page.get_query().data["extext"].replace("\n", " ")
         except:
             traceback.print_exc()
-            print(f"Can't obtain content for entry: {title}")
-            # pass
-            continue 
+            print(f"Can't obtain content for entry: {ref}")
+            continue
         else:
             sentences = nltk.sent_tokenize(content)
             print(f"person name: {title}, sentences: {len(sentences)}")
@@ -85,7 +84,7 @@ def executeJob(occupationCategory: tuple) -> list:
         occupationCategory (tuple): Consisting (qid , occupation_name , category_types)
 
     Returns:
-        list: Results of SPARQL query. 
+        list: Results of SPARQL query.
     """
     occupationObject, (category, group) = occupationCategory
 

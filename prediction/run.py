@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 from .model.custom_dataset import VectorizedDataset
 from .model.classifier import LogisticRegressor
 from utils import ClusterMetrics
-from utils.funs import flatten, flatten_tensors
+from utils.flatten import flatten, flatten_tensors
 from utils.visualization import visualize_confussion_matrix
 
 

@@ -65,7 +65,7 @@ As mentioned before, the main project constitutes two subprojects - `corpus`, an
 Nota bene:
 1. If there are not enough sentences per entry, it will be discarded.
 2. The level of parallelization (without enforcing some messaging mechanism between actors) is limited by the fact that we need to extract `--num_entires` per category. Additionally we don't have a set of persons at our disposition beforehand since it's being extracted at the runtime as well so we can't create a pool of threads which continuously take new jobs after they're done with executing a small subtask. Because of all that, we decided to parallelize the job of extracting, filtering, collecting, and processing simply per each category. So in the busiest time of execution, there are only 6 processes running asynchronously.
-3. The corpus is being stored as a `*.tsv` file along with the corresponding schema allowing to load data in the correct format (list object cannot be pickled). The output path should be provided as a directory; behaviour of providing a path is not fully tested; the data should at least be in the correct format: `corpus_<NUMBER>.tsv`.
+3. The corpus is being stored as a `*.tsv` file along with the corresponding schema allowing to load data in the correct format (list object cannot be pickled). The output path should be provided as a directory; in the other case, data path should at least be in the correct format: `corpus_<NUMBER>.tsv`. Once, the saved file's path format has been slightly changed, and the suffix number isn't the next in the sequence, the automatic loading from provided directory will not work since the suffix number may not be found among the saved files.
 
 #### Clustering / classification subparser
 | Id |    Full parameter   | Alternative |                            Functionality                            |
@@ -78,7 +78,7 @@ Nota bene:
 | 6  |     `--n_hidden`    |     `-h`    | Specifies the size of hidden layer for classification               |
 
 Nota bene:
-1. `--saved_path` parameter can take either directory path of the exact corpus `*.tsv` file's path. In the case of the former, it will take the most recent file (actually the file with the highest number as a suffix; which in a default behaviour of automatic saving by providing a directory will generate files with incremental suffix number). The corresponding schema's path will automatically be generated. Of course, if the path to the specific existing file will be provided, this file will be extracted instead.
+1. `--saved_path` parameter can take either directory path leading to saved corpora or the exact file's path. The former will work only if all the files have been saved automatically by providing a directory path while saving corpora in `corpus` subproject. In the case, some custom file path has been provided, automatic data loading from the directory will not work and the user must provide this exact file's path. For this very reason, it's highly advised that a user provides a directory path in both `corpus` and `prediction` subprojects.
 2. TFIDF in clustering is performed per each attribute; the results are later combined by stacking the sparse arrays back together.
 3. Parameters `--batch_size`, `--epochs`, `--eta`, `--n_hidden` specify respective hyperparameters for classification; names should be self-explanatory.
 

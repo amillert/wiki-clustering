@@ -1,5 +1,5 @@
 """
-Utility functions for classification/clustering
+    Utility functions for classification/clustering.
 """
 
 import functools

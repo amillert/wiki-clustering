@@ -1,3 +1,7 @@
+"""
+    Handles corpus importing/saving.
+"""
+
 import json
 import numpy as np
 import os

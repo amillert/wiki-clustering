@@ -1,5 +1,5 @@
 """
-Class for classification model. 
+    Class for classification model. 
 """
 
 import torch

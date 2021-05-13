@@ -1,3 +1,7 @@
+"""
+    Contains methods to perform the machine learning algorithms. 
+"""
+
 from collections import defaultdict, namedtuple
 import os
 import random

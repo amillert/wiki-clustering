@@ -59,15 +59,6 @@ prediction_subparser = subparsers.add_parser(
 )
 
 prediction_subparser.add_argument(
-    "-n",
-    "--num_clusters",
-    action="store",
-    type=int,
-    help="Provide how many clusters to group dataset into",
-    required=True,
-)
-
-prediction_subparser.add_argument(
     "-b",
     "--batch_size",
     action="store",

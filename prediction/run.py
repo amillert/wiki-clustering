@@ -35,7 +35,6 @@ class Predictor:
         # clustering
         self._df             = self._drop_empty(df)  # one from cluster
         self._idx2category, self._idx2group = conversion_dics
-        self._num_clusters   = args.num_clusters
         self._features_cols  =  list(
             filter(
                 lambda l: l not in ["title", "category", "group"],
@@ -246,10 +245,8 @@ class Predictor:
 
     def _vectorize_all(self) -> list:
         return [
-            # TODO(amillert): Preferably fix it so there's no need for " ".join
             self._vectorize(self._df[col].apply(" ".join), idf=True)
             for col in self._features_cols
-            # if list(filter(lambda l: l, self._df[col].tolist()))
         ]
 
     def _evaluate(self, y_gold: list, y_pred: list, is_train: bool=True) -> None:

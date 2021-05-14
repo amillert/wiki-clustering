@@ -3,6 +3,7 @@
 """
 
 from functools import reduce
+import string
 
 import nltk
 from nltk.tag import StanfordNERTagger
@@ -25,14 +26,14 @@ class TextNormalizer:
         return [[token.strip().lower() for token in sentence]
                 for sentence in self._tokenize(text)]
 
-    def _removeStopWords(self, text: list) -> list:
+    def _removeStopWordsAndPunctuation(self, text: list) -> list:
         stopwords = nltk.corpus.stopwords.words("english")
 
-        return [[token for token in sentence if token not in stopwords]
+        return [[token for token in sentence if token not in stopwords and token not in string.punctuation]
                 for sentence in self._lowercase(text)]
 
     def _normalize(self, text: list) -> list:
-        return [xi for x in self._removeStopWords(text) for xi in x]
+        return [xi for x in self._removeStopWordsAndPunctuation(text) for xi in x]
 
     def getNormalized(self) -> list:
         return self._normalized

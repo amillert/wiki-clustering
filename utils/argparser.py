@@ -28,6 +28,7 @@ corpus_subparser.add_argument(
     action="store",
     type=int,
     help="Provide how many persons per occupation",
+    required=True,
 )
 
 corpus_subparser.add_argument(
@@ -36,6 +37,7 @@ corpus_subparser.add_argument(
     action="store",
     type=int,
     help="Provide how many sentences per article (less will not be saved)",
+    required=True,
 )
 
 corpus_subparser.add_argument(
@@ -43,6 +45,7 @@ corpus_subparser.add_argument(
     "--parallel",
     action="store_true",
     help="If flag set - run parsing (maybe other part as well) in parallel",
+    required=True,
 )
 
 corpus_subparser.add_argument(

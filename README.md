@@ -50,10 +50,10 @@ In order to deactivate the `anaconda` virtual environment, one can run the comma
 $ conda deactivate
 ```
 
-### Using the project
+## Using the project
 As mentioned before, the main project constitutes two subprojects - `corpus`, and `prediction`. The distinction between the two and their respective arguments is reflected in the `utils/argparser.py` file. The two different subprojects are related to each other but should generally be treated as separate. Each of them comes with a set of parameters guiding the logic of execution and configuration.
 
-#### Corpus subparser
+### Corpus subparser
 
 | Id |       Full parameter      | Alternative |                          Functionality                          |
 |----|:-------------------------:|:-----------:|:---------------------------------------------------------------:|
@@ -67,7 +67,7 @@ Nota bene:
 2. The level of parallelization (without enforcing some messaging mechanism between actors) is limited by the fact that we need to extract `--num_entires` per category. Additionally we don't have a set of persons at our disposition beforehand since it's being extracted at the runtime as well so we can't create a pool of threads which continuously take new jobs after they're done with executing a small subtask. Because of all that, we decided to parallelize the job of extracting, filtering, collecting, and processing simply per each category. So in the busiest time of execution, there are only 6 processes running asynchronously.
 3. The corpus is being stored as a `*.tsv` file along with the corresponding schema allowing to load data in the correct format (list object cannot be pickled). The output path should be provided as a directory; in the other case, data path should at least be in the correct format: `corpus_<NUMBER>.tsv`. Once, the saved file's path format has been slightly changed, and the suffix number isn't the next in the sequence, the automatic loading from provided directory will not work since the suffix number may not be found among the saved files.
 
-#### Clustering / classification subparser
+### Clustering / classification subparser
 | Id |    Full parameter   | Alternative |                            Functionality                            |
 |----|:-------------------:|:-----------:|:-------------------------------------------------------------------:|
 | 1  |    `--saved_path`   |     `-s`    | Specifies the path to saved corpus (to load)                        |
@@ -82,7 +82,7 @@ Nota bene:
 2. TFIDF in clustering is performed per each attribute; the results are later combined by stacking the sparse arrays back together.
 3. Parameters `--batch_size`, `--epochs`, `--eta`, `--n_hidden` specify respective hyperparameters for classification; names should be self-explanatory.
 
-### Running the script and results
+## Running the script and results
 We will start of by activating a `conda` environment:
 ```bash
 $ conda activate amill_nakaz_2021
@@ -134,7 +134,7 @@ Which are shortly followed by the juxtaposition of averaged accuracies obtained 
 ![Confussion Matrix per group](docs/img/acc_gr.png)
 ![Confussion Matrix per category](docs/img/acc_cat.png)
 
-### Exercises Index 
+## Exercises Index 
 - Exercise 1-1
     The SPARQL's queries used to automatically retrieve the names for 6 categories can be found under: `utils/__init__.py`.
 
